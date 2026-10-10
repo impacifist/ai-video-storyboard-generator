@@ -109,7 +109,7 @@ python tests/browser_i18n.py
 
 Tests use temporary storage and mocked AI providers. Passing tests do not establish real-provider output quality. This beta has not been validated against paid production model calls.
 
-To regenerate the documentation screenshots and sample exports with isolated storage and mocked AI, run `python tools/capture_showcase.py` after installing Playwright and Chromium.
+To regenerate the documentation screenshots and sample exports with isolated storage and mocked AI, run `python tools/capture_showcase.py` after installing Playwright and Chromium. Add `--language ko` for the Korean screenshots and sample.
 
 See [architecture](docs/ARCHITECTURE.md), [implementation status](docs/IMPLEMENTATION_STATUS.md), and the [Korean guide](README.ko.md) for further details.
 
