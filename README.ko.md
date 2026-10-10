@@ -1,4 +1,4 @@
-# Persona Storyboard
+# AI 영상 스토리보드 생성기
 
 [English](README.md) · 한국어
 

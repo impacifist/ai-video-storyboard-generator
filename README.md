@@ -1,4 +1,4 @@
-# Persona Storyboard
+# AI Video Storyboard Generator
 
 English · [한국어](README.ko.md)
 
@@ -10,7 +10,7 @@ A local web app for turning two character personas into an editable storyboard, 
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/persona-storyboard/releases/tag/v0.1.0-beta) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.1.0-beta) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
 
