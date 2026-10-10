@@ -1,0 +1,27 @@
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+.local-secrets/
+
+# Dependencies and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+
+# Build outputs and generated media
+dist/
+build/
+output/
+storage/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
