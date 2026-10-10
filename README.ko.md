@@ -2,6 +2,28 @@
 
 [English](README.md) · 한국어
 
+## 화면으로 보는 사용 흐름
+
+아래는 영문 UI에서 촬영한 실제 앱 화면입니다. 직접 작성한 예시 콘티와 모의 AI 응답을 사용했으며, 실제 유료 모델의 생성 품질을 보여주는 자료는 아닙니다.
+
+**캐릭터 설정 → 컷별 콘티 편집**: 성격과 말투를 입력하고, 대사·행동·카메라·연속성 상태를 확인합니다. 유지할 컷은 고정할 수 있습니다.
+
+![영문 캐릭터 설정 및 콘티 편집 화면](docs/screenshots/create-en.png)
+
+**보관함 관리**: 저장한 콘티를 검색하고 미리보기·불러오기·변환·휴지통 이동·복원으로 관리합니다.
+
+![영문 콘티 관리 화면](docs/screenshots/manage-en.png)
+
+**30초 콘티 → 15초 프롬프트 2개**: Seedance 2.0 또는 MiniMax H3를 선택하고, 원본 컷·분할 계획·결과를 나란히 검토합니다. 전체 프롬프트는 TXT로, 참조 이미지는 ZIP으로 받을 수 있습니다.
+
+![영문 15초 클립 분할 및 프롬프트 변환 결과](docs/screenshots/convert-en.png)
+
+**브라우저에서 API 설정**: OpenAI·호환 API, Claude, Ollama 중 사용할 연결을 설정합니다.
+
+![영문 API 설정 화면](docs/screenshots/api-settings-en.png)
+
+[예시 콘티 JSON](examples/before-the-rain-stops.storyboard.json)을 저장해 **JSON 불러오기**로 열면 API 키 없이 내용을 확인하고 편집할 수 있습니다. 변환 화면에서 사용할 때는 먼저 보관함에 저장하세요. [예시 출력 TXT](examples/before-the-rain-stops.prompts.txt)도 함께 제공합니다. 실제 AI 변환에는 본인의 API 설정이 필요합니다.
+
 캐릭터 페르소나, 인물 관계, 장소와 상황, 사용자의 이야기 방향을 입력받아
 대사·행동·영상 연출을 포함한 편집 가능한 콘티를 제작하는 독립 프로젝트입니다.
 

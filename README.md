@@ -6,6 +6,14 @@ A local web app for turning two character personas into an editable storyboard, 
 
 **v0.1.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
+![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
+
+Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
+
+[Download the beta](https://github.com/impacifist/persona-storyboard/releases/tag/v0.1.0-beta) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+
+Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
+
 ## Quick start
 
 Install **Python 3.12 or later**, download and extract the release ZIP, and run `start.bat` on Windows. Alternatively, open a terminal in the extracted folder:
@@ -27,6 +35,30 @@ No additional Python packages are required to run the app. The template demo wor
 5. Optionally attach multiple character reference images, set their roles, and arrange attachment order. Generate prompts and download TXT, JSON, or a ZIP with reference images.
 
 The interface supports English (default), Korean, and Japanese. The globe menu saves your language choice across browser sessions. Source dialogue and user content retain their original language.
+
+## See it in action
+
+### Keep drafts organized
+
+Search saved storyboards, preview their contents, reopen them for editing, or send a selected storyboard directly to conversion. Each save creates a separate snapshot; deleted items can be restored from Trash.
+
+![English storyboard library with title search, collection and sort controls, and preview, open, convert, and delete actions](docs/screenshots/manage-en.png)
+
+### Turn 30 seconds into two video prompts
+
+In this example, Haru hesitates to ask Yuna to walk home together. Six five-second shots move from a sleeve gesture to a quiet invitation. Select the saved storyboard, keep the 15-second limit, and preview two clips: **C01, 0–15 seconds**, and **C02, 15–30 seconds**.
+
+Choose Seedance 2.0 or MiniMax H3 to apply its bundled guide profile. Review source shots, clip planning, and conversion results side by side on a wide screen. Download all clip prompts as one TXT file, or export JSON and a reference-image ZIP. Reference mode lets each character have several images with individual roles, notes, and attachment order.
+
+![English conversion workspace showing six source shots, a 15-second clip limit, two planned clips, Seedance prompts, and TXT, JSON, and ZIP downloads](docs/screenshots/convert-en.png)
+
+To reproduce this example, save the [sample JSON](examples/before-the-rain-stops.storyboard.json), choose **Import JSON**, and then **Save to library**. You can inspect and edit it without an API key. Live prompt conversion requires your own configured provider; the [included TXT](examples/before-the-rain-stops.prompts.txt) is the captured mock conversion output.
+
+### Connect your preferred AI
+
+Configure providers from the browser. OpenAI-compatible endpoints support a custom base URL, API mode, and JSON output mode. Claude and Ollama have their own settings; configure only the provider you plan to use.
+
+![English API settings dialog showing OpenAI-compatible base URL, API mode, JSON output options, and an empty API key field](docs/screenshots/api-settings-en.png)
 
 ## AI settings
 
@@ -76,6 +108,8 @@ python tests/browser_i18n.py
 ```
 
 Tests use temporary storage and mocked AI providers. Passing tests do not establish real-provider output quality. This beta has not been validated against paid production model calls.
+
+To regenerate the documentation screenshots and sample exports with isolated storage and mocked AI, run `python tools/capture_showcase.py` after installing Playwright and Chromium.
 
 See [architecture](docs/ARCHITECTURE.md), [implementation status](docs/IMPLEMENTATION_STATUS.md), and the [Korean guide](README.ko.md) for further details.
 

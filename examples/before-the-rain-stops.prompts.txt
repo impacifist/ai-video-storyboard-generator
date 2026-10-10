@@ -1,0 +1,49 @@
+VIDEO PROMPTS
+============================================================
+Seedance 2.0
+
+------------------------------------------------------------
+C01 | 15s
+Source 0–15s
+------------------------------------------------------------
+
+A classroom after school. Gentle rain and warm afternoon window light.
+
+[Shot 1] 0–5s
+Warm light falls across two desks. Rain beads on the window. Haru watches the rain while Yuna closes her schoolbag. Camera: Wide, Eye level, Static, Cut.
+Haru [haru] says in English. Delivery: Softly, with a natural pause. {Still raining.}
+
+[Shot 2] 5–10s
+Close on Haru's fingers gathering the edge of her sleeve. Haru glances at Yuna, then lowers her eyes. Camera: Close-up, Eye level, Static, Cut.
+Haru [haru] says in English. Delivery: Softly, with a natural pause. {I forgot my umbrella.}
+
+[Shot 3] 10–15s
+Yuna pauses beside her bag and turns toward Haru. Yuna softens her expression and reaches for the clear umbrella. Camera: Medium, Eye level, Gentle push-in, Cut.
+Yuna [yuna] says in English. Delivery: Softly, with a natural pause. {We can share mine.}
+
+Overall soundscape: Soft rain against the window, subtle fabric and footsteps.
+
+Non-diegetic music: None; leave space for the pauses.
+
+------------------------------------------------------------
+C02 | 15s
+Source 15–30s
+------------------------------------------------------------
+
+A classroom after school. Gentle rain and warm afternoon window light.
+
+[Shot 1] 0–5s
+Yuna holds up the clear umbrella, leaving space beside her. Yuna waits without rushing Haru; Haru lifts her gaze. Camera: Two-shot, Eye level, Static, Cut.
+Yuna [yuna] says in English. Delivery: Softly, with a natural pause. {Want to walk together?}
+
+[Shot 2] 5–10s
+Haru releases her sleeve. A small smile replaces her uncertainty. Haru nods and steps toward Yuna. Camera: Close-up, Eye level, Static, Cut.
+Haru [haru] says in English. Delivery: Softly, with a natural pause. {Yes. I'd like that.}
+
+[Shot 3] 10–15s
+Both girls walk toward the classroom door in the warm afternoon light. Yuna carries the closed umbrella as they leave side by side. Camera: Wide, Eye level, Slow follow, Cut.
+Yuna [yuna] says in English. Delivery: Softly, with a natural pause. {Let's go.}
+
+Overall soundscape: Soft rain against the window, subtle fabric and footsteps.
+
+Non-diegetic music: None; leave space for the pauses.
