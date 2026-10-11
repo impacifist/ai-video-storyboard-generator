@@ -19,6 +19,38 @@ def document():
 
 
 class ContractTests(unittest.TestCase):
+    def test_direction_contract_reaches_every_generation_provider_with_original_schema(self):
+        for provider in ("openai", "claude", "ollama"):
+            with self.subTest(provider=provider):
+                source = brief()
+                before = copy.deepcopy(source)
+                response = engine.demo_story(source)
+                with patch("storyboard.providers.generate_json", return_value=response) as upstream:
+                    result = engine.generate({"brief": source, "provider": provider, "model": "test-model"})
+                upstream.assert_called_once()
+                _, _, system, user, schema = upstream.call_args.args
+                self.assertIn(engine.SHOT_DIRECTION, system)
+                self.assertEqual(json.loads(user)["brief"], before)
+                self.assertEqual(schema, engine.STORY)
+                self.assertEqual(source, before)
+                engine.validate_document(result)
+                self.assertEqual(len(result["story"]["shots"]), source["shot_count"])
+
+    def test_semantic_review_uses_same_direction_contract_without_rewriting_story(self):
+        doc = document()
+        before = copy.deepcopy(doc)
+        response = {"summary": "전환 계기 검토", "findings": [{"severity": "warning", "category": "연출",
+                    "shot_id": "S02", "message": "상대의 반응으로 전환할 이유를 구체화하세요."}]}
+        with patch("storyboard.providers.generate_json", return_value=response) as upstream:
+            result = engine.semantic_review(doc, "openai", "test-model")
+        upstream.assert_called_once()
+        _, _, system, user, schema = upstream.call_args.args
+        self.assertIn(engine.SHOT_DIRECTION, system)
+        self.assertEqual(json.loads(user)["story"], before["story"])
+        self.assertEqual(schema, engine.AI_REVIEW)
+        self.assertEqual(result["result"], response)
+        self.assertEqual(doc, before)
+
     def test_demo_has_explicit_provenance_and_valid_references(self):
         doc = document()
         engine.validate_document(doc)
@@ -86,6 +118,7 @@ class ContractTests(unittest.TestCase):
             result = engine.generate({"brief": brief(), "provider": "openai", "model": "test-model", "previous": previous})
         self.assertEqual(result["story"]["shots"][2], original["story"]["shots"][2])
         self.assertEqual(previous, original)
+        self.assertIn(engine.SHOT_DIRECTION, call.call_args.args[2])
         self.assertIn("사용자가 고정한 화면", call.call_args.args[3])
 
     def test_locked_input_change_and_all_locked_fail_before_provider(self):

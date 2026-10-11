@@ -65,6 +65,8 @@ def main():
             page.locator("[name='title']").fill("콘티 제작")
             page.locator("[name='c0_name']").fill("삭제")
             page.locator("[name='c0_personality']").fill("Do not translate this persona. 日本語も保持。絵コンテという原文も保持。")
+            page.locator("[name='c0_gender']").fill("女性")
+            page.locator("[name='c0_age']").fill("17歳、高校生")
             input_before = page.locator("#brief-form").evaluate("f => [...f.elements].filter(n => n.name).map(n => [n.name,n.value])")
             choose("ja")
             expect(page.locator(".title-field")).to_contain_text("ストーリーボード")
@@ -73,6 +75,8 @@ def main():
             page.locator("#generate").click()
             expect(page.locator("#notice")).to_contain_text("デモストーリーボードを保存")
             document_before = page.evaluate("JSON.stringify(project)")
+            assert page.evaluate("project.brief.characters[0].gender") == "女性"
+            assert page.evaluate("project.brief.characters[0].age") == "17歳、高校生"
             choose("en")
             expect(page.locator("#board-title")).to_have_text("콘티 제작")
             expect(page.locator("#shots .dialogue strong").first).to_have_text("삭제")

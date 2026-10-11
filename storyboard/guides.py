@@ -19,7 +19,8 @@ def scope_rules():
 
 
 def assembly_rules():
-    return (ROOT / "dialogue-assembly.md").read_text(encoding="utf-8")
+    return ((ROOT / "dialogue-assembly.md").read_text(encoding="utf-8") + "\n\n" +
+            (ROOT / "anime-direction.md").read_text(encoding="utf-8"))
 
 
 def profile(key):
@@ -42,12 +43,16 @@ def profile(key):
                    "Separate ambient sound from non-diegetic music; N/A if absent.")
         if mode == "reference":
             system += (" Define <Subject N> once per character and associate all its <Picture N> assets. "
+                       "Use attachment tokens exactly as <Picture 1>, <Picture 2>, etc. everywhere, including "
+                       "subject_definitions, retention_analysis and reference notes; never use Image N. "
                        "Retention analysis must state which identity/style attributes to preserve from each asset.")
+        system += "\n" + (ROOT / "minimax-animation-direction.md").read_text(encoding="utf-8")
     system += "\n" + scope_rules()
     system += "\n" + assembly_rules()
     return {"id": key, "target_model": target, "mode": mode, "guide": guide,
             "guide_source": "\n".join(line[2:] for line in guide.splitlines() if line.startswith("- https://")),
-            "system_prompt": system, "checked_at": "2026-10-10", "min_seconds": 4, "max_seconds": 15,
+            "system_prompt": system, "checked_at": "2026-10-11" if key.startswith("minimax") else "2026-10-10",
+            "min_seconds": 4, "max_seconds": 15,
             "max_images": 9 if mode == "reference" else 0, "sections": sections,
             "sha256": hashlib.sha256((guide + system).encode()).hexdigest()}
 

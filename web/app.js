@@ -167,6 +167,11 @@ function buildCharacters() {
     top.append(el("span", "avatar", String(i + 1)), inputField(tr("이름"), `c${i}_name`, false, true));
     card.append(id, top, inputField(tr("성격 · 상대를 대하는 태도"), `c${i}_personality`, true, true),
       inputField(tr("말투"), `c${i}_speech`, true));
+    const traits = el("div", "form-grid");
+    traits.append(inputField(tr("성별 · 선택"), `c${i}_gender`), inputField(tr("연령 · 선택"), `c${i}_age`));
+    card.insertBefore(traits, top.nextSibling);
+    card.append(el("p", "helper", tr("말투에 대사 언어, 인칭, 존댓말 여부와 예시를 적으면 더 정확해집니다.")));
+    if (i === 0) card.append(el("p", "helper", tr("일본어 대사는 생성 후 한 번 더 교정하며 API 사용량이 늘어납니다.")));
     const details = el("details");
     details.append(el("summary", "", tr("욕구 · 두려움 · 습관 · 고정 설정")));
     for (const [key, label] of [["desire", tr("원하는 것")], ["fear", tr("두려운 것")], ["habit", tr("행동 습관")], ["fixed", tr("외형 · 과거 · 바뀌면 안 되는 설정")]]) {
@@ -187,6 +192,9 @@ function readBrief() {
   brief.shot_count = Number(text("shot_count"));
   brief.characters = [0, 1].map((i) => Object.fromEntries(
     ["id", "name", "personality", "speech", "desire", "fear", "habit", "fixed"].map((k) => [k, text(`c${i}_${k}`)])));
+  brief.characters.forEach((character, i) => {
+    for (const key of ["gender", "age"]) if (text(`c${i}_${key}`)) character[key] = text(`c${i}_${key}`);
+  });
   return brief;
 }
 
@@ -229,6 +237,7 @@ function fillBrief(brief) {
     if (key !== "characters" && form.elements.namedItem(key)) form.elements.namedItem(key).value = value;
   }
   brief.characters.forEach((character, i) => {
+    for (const key of ["gender", "age"]) form.elements.namedItem(`c${i}_${key}`).value = character[key] || "";
     for (const [key, value] of Object.entries(character)) form.elements.namedItem(`c${i}_${key}`).value = value;
   });
 }
@@ -1005,6 +1014,8 @@ function readOnlyField(container, label, value) {
 
 function sourceText(value, depth = 0) {
   const fields = {id: "ID", name: "이름", personality: "성격 · 상대를 대하는 태도", speech: "말투", desire: "원하는 것", fear: "두려운 것", habit: "행동 습관", fixed: "고정 설정", character_id: "캐릭터", characters: "캐릭터", props: "소품", position: "위치", pose: "자세", gaze: "시선", emotion: "감정", holder: "소유자", speaker: "말하는 인물", text: "대사", delivery: "대사 표현", size: "샷 크기", angle: "앵글", movement: "카메라 움직임", transition: "전환", beats: "이야기 흐름", assumptions: "가정"};
+  fields.gender = "성별";
+  fields.age = "연령";
   if (typeof value === "string") return value || "—";
   if (Array.isArray(value)) return value.length ? value.map((item, i) => `${i + 1}. ${sourceText(item, depth + 1)}`).join("\n\n") : "—";
   if (value && typeof value === "object") return Object.entries(value).map(([key, item]) => `${"  ".repeat(depth)}${tr(fields[key] || key)}: ${sourceText(item, depth + 1)}`).join("\n");

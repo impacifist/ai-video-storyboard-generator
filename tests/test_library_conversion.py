@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from storyboard import conversion, engine, library
+from storyboard import conversion, engine, library, prompt_renderer
 from storyboard.schema import ValidationError
 from conversion_fixtures import direction_output
 
@@ -143,6 +143,16 @@ class LibraryConversionTests(unittest.TestCase):
             library.save_conversion(saved["id"], result)
         library.trash(saved["id"], False)
         self.assertEqual(len(library.conversions(saved["id"])), 1)
+
+    def test_saved_v3_prompt_still_loads_and_exports_without_camera_response_fields(self):
+        saved = library.save(self.document)
+        legacy = {"assembly_version": 3, "output_language": "english_except_dialogue",
+                  "target_model": "MiniMax H3", "plan": {"clips": [{"id": "C01", "duration": 15}]},
+                  "output": {"clips": [{"id": "C01", "prompt": "Previously approved animation prompt."}]}}
+        library.save_conversion(saved["id"], legacy)
+        loaded = library.conversions(saved["id"])[0]["result"]
+        self.assertEqual(loaded, legacy)
+        self.assertIn("Previously approved animation prompt.", prompt_renderer.export_text(loaded))
 
     def test_bad_ai_clip_mapping_missing_shots_and_conflicts_blocked(self):
         bad_id, bad_dialogue, conflict = self.output(), self.output(), self.output()

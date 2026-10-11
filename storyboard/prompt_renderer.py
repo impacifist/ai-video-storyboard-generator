@@ -11,7 +11,9 @@ DIRECTION_STATE = obj(characters=array(CHAR_STATE),
 
 DIRECTOR_OUTPUT = obj(clips=array(obj(
     id=TEXT, context=TEXT, subject_definitions=TEXT, summary=TEXT, retention_analysis=TEXT,
-    shots=array(obj(id=TEXT, direction=TEXT, dialogue_language=TEXT, deliveries=array(TEXT))),
+    shots=array(obj(id=TEXT, direction=TEXT,
+                    camera=obj(size=TEXT, angle=TEXT, movement=TEXT, transition=TEXT, layout=TEXT),
+                    dialogue_language=TEXT, deliveries=array(TEXT))),
     overall_soundscape=TEXT, non_diegetic_music=TEXT)), boundaries=array(obj(id=TEXT, state=DIRECTION_STATE)),
     reference_notes=array(obj(label=TEXT, note=TEXT)),
     warnings=array(TEXT), notes=array(TEXT))
@@ -131,8 +133,33 @@ def export_text(result):
     return "\r\n".join(lines)
 
 
+def h3_reference_labels(draft, assets):
+    """Canonicalize attachment aliases in AI prose, never original dialogue or IDs."""
+    allowed = {item["label"] for item in assets}
+    aliases = re.compile(r"<(?:Image|Picture)\s*(\d+)>|\b(?:Image|Picture)\s+(\d+)\b", re.IGNORECASE)
+
+    def replace(match):
+        label = f"<Picture {int(match[1] or match[2])}>"
+        if label not in allowed:
+            raise ValidationError("프롬프트의 이미지 번호와 첨부 목록이 일치하지 않습니다.")
+        return label
+
+    def normalize(value, key=""):
+        if isinstance(value, dict):
+            return {field: normalize(item, field) for field, item in value.items()}
+        if isinstance(value, list):
+            return [normalize(item, key) for item in value]
+        if isinstance(value, str) and key not in {"id", "character_id", "holder", "name"}:
+            return aliases.sub(replace, value)
+        return value
+
+    return normalize(draft)
+
+
 def assemble(document, layout, draft, profile, assets):
     validate(draft, DIRECTOR_OUTPUT, "director_output")
+    if profile and profile["id"].startswith("minimax"):
+        draft = h3_reference_labels(draft, assets)
     if [c["id"] for c in draft["clips"]] != [c["id"] for c in layout["clips"]]:
         raise ValidationError("변환 결과의 클립 수 또는 순서가 원본 계획과 다릅니다.")
     names = render_labels(document)
@@ -167,6 +194,12 @@ def assemble(document, layout, draft, profile, assets):
         boundaries[boundary["id"]] = " | ".join(descriptions)
     h3 = bool(profile and profile["id"].startswith("minimax"))
     seedance = bool(profile and profile["id"].startswith("seedance"))
+    # A time split is not a second camera design. Bind each source shot once;
+    # composition notes may evolve with the segment's continuing performance.
+    cameras = {}
+    for clip in draft["clips"]:
+        for shot in clip["shots"]:
+            cameras.setdefault(shot["id"], shot["camera"])
     rendered, manifest = [], []
     for generated, clip in zip(draft["clips"], layout["clips"]):
         if [s["id"] for s in generated["shots"]] != [s["id"] for s in clip["shots"]]:
@@ -176,9 +209,14 @@ def assemble(document, layout, draft, profile, assets):
         fragments = [generated[key] for key in ("context", "subject_definitions", "summary", "retention_analysis",
                                                 "overall_soundscape", "non_diegetic_music")]
         fragments += [s["direction"] for s in generated["shots"]]
+        fragments += [value for s in generated["shots"] for value in s["camera"].values()]
         for field in ("context", "subject_definitions", "summary", "retention_analysis", "overall_soundscape", "non_diegetic_music"):
             require_english(generated[field], f"clips.{clip['id']}.{field}")
         for index, directed in enumerate(generated["shots"]):
+            for field, value in directed["camera"].items():
+                require_english(value, f"clips.{clip['id']}.shots[{index}].camera.{field}")
+                if not value.strip():
+                    raise ValidationError(f"clips.{clip['id']}.shots[{index}].camera.{field}: explicit camera instruction required")
             require_english(directed["direction"], f"clips.{clip['id']}.shots[{index}].direction")
             require_english(directed["dialogue_language"], f"clips.{clip['id']}.shots[{index}].dialogue_language")
             fragments.extend(directed["deliveries"])
@@ -201,6 +239,11 @@ def assemble(document, layout, draft, profile, assets):
             else:
                 heading = f"[Shot {index}] {planned['start']:g}–{planned['end']:g}s"
             body = [heading]
+            camera = cameras[planned["id"]]
+            body.append(f"Camera: {camera['size']}; angle: {camera['angle']}; movement: {camera['movement']}.")
+            body.append("Layout: " + directed["camera"]["layout"])
+            if planned.get("continues_from_previous"):
+                body.append("Continue the same source shot and ongoing camera motion; do not replay its opening or add a cut.")
             if planned.get("entry_boundary_id"):
                 key = planned["entry_boundary_id"]
                 body.append(f"Start at shared boundary {key}: {boundaries[key]}")
@@ -232,6 +275,10 @@ def assemble(document, layout, draft, profile, assets):
             if planned.get("exit_boundary_id"):
                 key = planned["exit_boundary_id"]
                 body.append(f"End at shared boundary {key}: {boundaries[key]}")
+            if planned.get("continues_in_next"):
+                body.append("Continue this source shot into the next clip without an edit or camera reset.")
+            else:
+                body.append("At the end of this source shot: " + camera["transition"])
             bodies.append("\n".join(body))
         description = "\n\n".join(bodies)
         refs = []

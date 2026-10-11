@@ -4,13 +4,13 @@ English · [한국어](README.ko.md)
 
 A local web app for turning two character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
 
-**v0.1.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.2.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.1.0-beta) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.2.0-beta) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
 
@@ -35,6 +35,8 @@ No additional Python packages are required to run the app. The template demo wor
 5. Optionally attach multiple character reference images, set their roles, and arrange attachment order. Generate prompts and download TXT, JSON, or a ZIP with reference images.
 
 The interface supports English (default), Korean, and Japanese. The globe menu saves your language choice across browser sessions. Source dialogue and user content retain their original language.
+
+Character settings include optional gender and age alongside speaking style. For Japanese dialogue, specify pronouns, politeness and example lines in speaking style. AI generation runs one additional dialogue proofreading pass when Japanese lines are present, increasing API usage. Locked shots and dialogue supplied verbatim in the inputs are excluded. If proofreading fails, the generated draft remains available with a review warning. This is AI assistance, not a guarantee of native-level Japanese; video conversion preserves the approved dialogue verbatim.
 
 ## See it in action
 
@@ -68,7 +70,7 @@ OpenAI-compatible services can use a custom base URL, Chat Completions or Respon
 
 API keys are stored **unencrypted on your computer** in `.local-secrets/ui-settings.json` when saved through the UI. They are excluded from Git and exports. Keep the project folder private. The server listens on loopback and is intended for personal local use; it has no multi-user authentication. Do not expose it through a public proxy.
 
-Generation, revision, review, and conversion send the relevant text to your selected provider. Conversion sends reference metadata, not image bytes, and does not visually analyze images. Conversion can make one additional paid call to repair invalid structured output; consent is requested in the UI.
+Generation, revision, review, and conversion send the relevant text to your selected provider. Generation/revision can make one additional paid call to proofread editable Japanese dialogue. Conversion sends reference metadata, not image bytes, and does not visually analyze images. Conversion can make one additional paid call to repair invalid structured output; consent is requested in the UI.
 
 ## Prompt conversion
 

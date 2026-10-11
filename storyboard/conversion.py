@@ -28,6 +28,8 @@ def compile_directions(document, layout, profile, assets, provider, model, syste
             draft = providers.generate_json(provider, model, system, json.dumps(user, ensure_ascii=False), schema)
             # Also validate here so alternate adapters cannot bypass the contract.
             prompt_renderer.validate(draft, schema, "AI 응답")
+            if profile and profile["id"].startswith("minimax"):
+                draft = prompt_renderer.h3_reference_labels(draft, assets)
             result, manifest = prompt_renderer.assemble(document, layout, draft, profile, assets)
             result["warnings"] = list(dict.fromkeys(warnings + result["warnings"]))
             return draft, result, manifest, {"attempts": attempt + 1, "repaired": bool(attempt), "issues": errors}
@@ -227,7 +229,7 @@ def compile_prompts(document, payload):
             "guide_sha256": selected_guide["sha256"] if selected_guide else None,
             "guide_checked_at": selected_guide["checked_at"] if selected_guide else None,
             "system_prompt": system_prompt, "scope": scope,
-            "assembly_version": 3, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
+            "assembly_version": 4, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
             "english_reference_notes": draft["reference_notes"],
             "render_labels": prompt_renderer.render_labels(document),
             "validation_report": validation_report,

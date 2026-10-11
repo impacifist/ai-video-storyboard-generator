@@ -16,6 +16,54 @@ class PromptRendererTests(unittest.TestCase):
         self.doc = engine.generate({"brief": brief, "provider": "demo"})
         self.ids = [s["id"] for s in self.doc["story"]["shots"]]
 
+    def test_camera_and_layout_are_rendered_for_both_targets(self):
+        layout = conversion.plan(self.doc, self.ids)
+        for target in ("minimax-h3-text", "seedance-2-text"):
+            draft = direction_output(layout)
+            draft["clips"][0]["shots"][0]["camera"] = {
+                "size": "Close-up on the listening character", "angle": "Eye level from the same side of the axis",
+                "movement": "Locked camera", "transition": "Hard cut after the listener looks up",
+                "layout": "Character 2 occupies the right third, looking screen-left; leave space toward the gaze."}
+            before = copy.deepcopy(draft)
+            output, _ = prompt_renderer.assemble(self.doc, layout, draft, guides.profile(target), [])
+            prompt = output["clips"][0]["prompt"]
+            for value in draft["clips"][0]["shots"][0]["camera"].values():
+                self.assertIn(value, prompt)
+            self.assertEqual(draft, before)
+
+    def test_split_preserves_camera_view_and_delays_transition_until_source_shot_ends(self):
+        for shot, seconds in zip(self.doc["story"]["shots"], [8, 8, 8, 2, 2, 2]):
+            shot["duration"] = seconds
+        layout = conversion.plan(self.doc, self.ids, split_mode="fixed")
+        draft = direction_output(layout)
+        for clip in draft["clips"]:
+            for shot in clip["shots"]:
+                if shot["id"] == "S02":
+                    shot["camera"]["transition"] = "Hard cut on the sleeve release"
+                    shot["camera"]["movement"] = "Locked camera on the listener"
+        draft["clips"][1]["shots"][0]["camera"]["movement"] = "Unrequested orbit around the listener"
+        output, _ = prompt_renderer.assemble(self.doc, layout, draft, guides.profile("minimax-h3-text"), [])
+        first, second = [clip["prompt"] for clip in output["clips"]]
+        self.assertNotIn("Hard cut on the sleeve release", first)
+        self.assertIn("without an edit or camera reset", first)
+        self.assertIn("Hard cut on the sleeve release", second)
+        self.assertIn("do not replay its opening or add a cut", second)
+        self.assertIn("Locked camera on the listener", first)
+        self.assertIn("Locked camera on the listener", second)
+        self.assertNotIn("Unrequested orbit", second)
+
+    def test_camera_fields_cannot_be_missing_empty_non_english_or_contain_speech(self):
+        layout = conversion.plan(self.doc, self.ids)
+        for invalid in (None, "", "카메라 고정", "<d>[English] Invented speech</d>"):
+            draft = direction_output(layout)
+            camera = draft["clips"][0]["shots"][0]["camera"]
+            if invalid is None:
+                del camera["movement"]
+            else:
+                camera["movement"] = invalid
+            with self.subTest(invalid=invalid), self.assertRaises(ValidationError):
+                prompt_renderer.assemble(self.doc, layout, draft, guides.profile("minimax-h3-text"), [])
+
     def test_director_outputs_no_speech_but_all_original_lines_are_assembled(self):
         # Whitespace, punctuation, multilingual words and short lines are kept literally.
         unusual = ['  응…  정말?\n"Yes..." 日本語も!  ', "a", "I", "좋아!"]

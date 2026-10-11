@@ -35,6 +35,13 @@ window.UI_KOREAN = {
 
 // UI copy only. Never apply this catalog to persona, dialogue, or prompt content.
 window.UI_MESSAGES = {
+  "성별 · 선택": ["Gender · optional", "性別・任意"],
+  "연령 · 선택": ["Age · optional", "年齢・任意"],
+  "성별": ["Gender", "性別"], "연령": ["Age", "年齢"],
+  "말투에 대사 언어, 인칭, 존댓말 여부와 예시를 적으면 더 정확해집니다.": ["For a clearer character voice, specify dialogue language, pronouns, politeness and sample lines.", "台詞の言語、一人称、敬語の使い方、台詞例を書くと、話し方を伝えやすくなります。"],
+  "일본어 대사는 생성 후 한 번 더 교정하며 API 사용량이 늘어납니다.": ["Japanese dialogue gets an additional proofreading pass, which increases API usage.", "日本語の台詞は生成後にもう一度校正するため、API使用量が増えます。"],
+  "일본어": ["Japanese", "日本語"],
+  "자동 대사 교정을 완료하지 못해 생성 대사를 유지했습니다. AI 검수 또는 직접 검토해주세요.": ["Dialogue proofreading did not complete. Generated lines were kept; run AI review or check them manually.", "台詞の自動校正が完了しなかったため、生成された台詞を保持しました。AIチェックまたは手動で確認してください。"],
   "정렬": ["Sort by", "並び替え"], "최근 저장 순": ["Newest first", "新しい順"], "오래된 순": ["Oldest first", "古い順"], "제목 순": ["Title", "タイトル順"],
   "콘티 제목": ["Storyboard", "ストーリーボード"], "길이": ["Duration", "長さ"], "저장일": ["Saved", "保存日時"], "작업": ["Actions", "操作"],
   "{0}개 표시 / 전체 {1}개": ["{0} shown / {1} total", "{0}件表示 / 全{1}件"], "{0}컷": ["{0} shots", "{0}カット"], "{0}초": ["{0}s", "{0}秒"],

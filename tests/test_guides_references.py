@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
-from storyboard import conversion, engine, guides, library, references
+from storyboard import conversion, engine, guides, library, prompt_renderer, references
 from storyboard.schema import ValidationError
 from conversion_fixtures import direction_output
 
@@ -47,6 +47,44 @@ class GuideReferencesTests(unittest.TestCase):
             self.assertEqual(profile["sha256"], guides.profile(profile["id"])["sha256"])
             self.assertEqual((profile["min_seconds"], profile["max_seconds"]), (4, 15))
 
+    def test_animation_supplement_is_h3_only_and_versioned(self):
+        supplement = (guides.ROOT / "minimax-animation-direction.md").read_text(encoding="utf-8")
+        for profile in guides.catalog():
+            if profile["id"].startswith("minimax"):
+                self.assertIn(supplement, profile["system_prompt"])
+                self.assertIn("3d-animation-short-generator/SKILL.md", profile["guide_source"])
+                self.assertEqual(profile["checked_at"], "2026-10-11")
+                self.assertLessEqual(len(profile["guide_source"]), 2048)
+                with patch.object(guides.Path, "read_text", autospec=True) as read:
+                    def revised(path, **kwargs):
+                        return supplement + "\nRevised direction policy." if path.name == "minimax-animation-direction.md" else Path.read_bytes(path).decode("utf-8")
+                    read.side_effect = revised
+                    self.assertNotEqual(profile["sha256"], guides.profile(profile["id"])["sha256"])
+            else:
+                self.assertNotIn(supplement, profile["system_prompt"])
+                self.assertEqual(profile["checked_at"], "2026-10-10")
+
+    def test_h3_animation_contract_reaches_compiler_without_changing_clip_plan(self):
+        self.payload.update(guide_id="minimax-h3-text", split_mode="fixed", references=[])
+
+        def generate(provider, model, system, user, schema):
+            request = json.loads(user)
+            self.assertIn("H3 animation direction supplement", system)
+            self.assertIn("Do not impose stylized 3D", system)
+            self.assertEqual(request["brief"]["style"], self.doc["brief"]["style"])
+            self.assertEqual([clip["duration"] for clip in request["plan"]["clips"]], [15, 15])
+            return direction_output(request["plan"])
+
+        with patch("storyboard.providers.generate_json", side_effect=generate) as upstream:
+            result = conversion.compile_prompts(self.doc, self.payload)
+        upstream.assert_called_once()
+        self.assertEqual(result["guide_checked_at"], "2026-10-11")
+        self.assertEqual([clip["duration"] for clip in result["plan"]["clips"]], [15, 15])
+        for generated, planned in zip(result["output"]["clips"], result["plan"]["clips"]):
+            for shot in planned["shots"]:
+                for line in shot["source"]["dialogue"]:
+                    self.assertIn(line["text"], generated["prompt"])
+
     def test_multiple_images_one_character_persist_and_order(self):
         images = [self.upload() for _ in range(4)]
         images.reverse()
@@ -58,6 +96,40 @@ class GuideReferencesTests(unittest.TestCase):
         self.assertEqual(manifest[-1]["label"], "<Picture 4>")
         self.assertEqual(manifest[0]["note"], "Costume only")
         self.assertEqual(len({a["character_id"] for a in manifest}), 1)
+
+    def test_h3_aliases_are_canonical_in_prompts_and_txt_but_not_dialogue(self):
+        self.payload["references"] = [self.upload(), self.upload()]
+        self.doc["story"]["shots"][0]["dialogue"][0]["text"] = "Image 1 is my favorite."
+
+        def generate(provider, model, system, user, schema):
+            request = json.loads(user)
+            draft = direction_output(request["plan"], request["references"])
+            draft["reference_notes"][0]["note"] = "Preserve identity from Image 1."
+            draft["notes"] = ["Check image 2 for the costume."]
+            for clip in draft["clips"]:
+                clip["subject_definitions"] = "Same character across Image 1 and <Image 2>."
+                clip["retention_analysis"] = "Retain the face from Picture 1 and clothing from <Picture 2>."
+                clip["shots"][0]["direction"] += " Match Image 2."
+            return draft
+
+        with patch("storyboard.providers.generate_json", side_effect=generate) as upstream:
+            result = conversion.compile_prompts(self.doc, self.payload)
+        upstream.assert_called_once()
+        text = prompt_renderer.export_text(result)
+        self.assertIn("Preserve identity from <Picture 1>.", text)
+        self.assertIn("Check <Picture 2> for the costume.", text)
+        self.assertIn("Same character across <Picture 1> and <Picture 2>.", text)
+        self.assertIn("Image 1 is my favorite.", text)
+        self.assertNotIn("Match Image 2", text)
+        self.assertEqual(result["english_reference_notes"][0]["note"], "Preserve identity from <Picture 1>.")
+
+    def test_h3_unknown_alias_is_not_remapped_to_an_existing_attachment(self):
+        self.payload["references"] = [self.upload()]
+        layout = conversion.plan(self.doc, self.payload["selected"])
+        draft = direction_output(layout, [{"label": "<Picture 1>", "note": ""}])
+        draft["clips"][0]["subject_definitions"] = "Use Image 2."
+        with patch("storyboard.providers.generate_json", return_value=draft), self.assertRaises(ValidationError):
+            conversion.compile_prompts(self.doc, self.payload)
 
     def test_invalid_images_characters_and_paths(self):
         for kwargs in ({"data": "data:image/svg+xml;base64,AAAA"}, {"character_id": "absent"},

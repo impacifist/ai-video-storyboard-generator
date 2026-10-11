@@ -20,6 +20,7 @@ TEXT = {"type": "string"}
 NUMBER = {"type": "number"}
 CHARACTER = obj(id=TEXT, name=TEXT, personality=TEXT, speech=TEXT, desire=TEXT,
                 fear=TEXT, habit=TEXT, fixed=TEXT)
+CHARACTER["properties"].update(gender=TEXT, age=TEXT)
 BRIEF = obj(title=TEXT, characters=array(CHARACTER), relationship=TEXT,
             location=TEXT, time=TEXT, atmosphere=TEXT, situation=TEXT,
             intent=TEXT, ending=TEXT, required=TEXT, excluded=TEXT, style=TEXT,
@@ -58,13 +59,14 @@ def validate(value, schema, path="root"):
         for i, item in enumerate(value):
             validate(item, schema["items"], f"{path}[{i}]")
     if kind == "object":
-        if set(value) != set(schema["properties"]):
-            missing = set(schema["properties"]) - set(value)
+        if not set(schema["required"]) <= set(value) or not set(value) <= set(schema["properties"]):
+            missing = set(schema["required"]) - set(value)
             extra = set(value) - set(schema["properties"])
             raise ValidationError(f"{path}: 필드 불일치 (누락: {', '.join(sorted(missing))}; "
                                   f"추가: {', '.join(sorted(extra))}).")
         for name, child in schema["properties"].items():
-            validate(value[name], child, f"{path}.{name}")
+            if name in value:
+                validate(value[name], child, f"{path}.{name}")
 
 
 def validate_brief(brief):

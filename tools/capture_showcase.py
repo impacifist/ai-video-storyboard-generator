@@ -152,7 +152,8 @@ def mock_director(provider, model, system, user, schema):
             "summary": "A quiet invitation to walk home together.",
             "retention_analysis": "Maintain both character identities and the clear umbrella throughout.",
             "shots": [{"id": shot["id"],
-                       "direction": english_shots[shot["id"]]["visual"] + " " + " ".join(english_shots[shot["id"]]["actions"]) + " Camera: " + ", ".join(english_shots[shot["id"]]["camera"].values()) + ".",
+                       "camera": {**english_shots[shot["id"]]["camera"], "layout": english_shots[shot["id"]]["visual"]},
+                       "direction": " ".join(english_shots[shot["id"]]["actions"]),
                        "dialogue_language": "Korean" if korean else "English", "deliveries": ["Softly, with a natural pause" for line in shot["source"]["dialogue"]]}
                       for shot in clip["shots"]],
             "overall_soundscape": "Soft rain against the window, subtle fabric and footsteps.",
