@@ -163,10 +163,10 @@ class GuideReferencesTests(unittest.TestCase):
             self.assertEqual(archive.read(manifest[0]["file"]), PNG)
             self.assertNotIn("..", manifest[0]["file"])
 
-    def test_bad_duration_rejected_before_ai(self):
+    def test_invalid_official_clip_limit_rejected_before_ai(self):
         self.payload.update(guide_id="seedance-2-text", references=[], selected=["S01"])
-        for duration in (3, 4.5):
-            self.doc["story"]["shots"][0]["duration"] = duration
+        for limit in (3, 4.5, 16):
+            self.payload["limit"] = limit
             with patch("storyboard.providers.generate_json") as upstream, self.assertRaises(ValidationError):
                 conversion.compile_prompts(self.doc, self.payload)
             upstream.assert_not_called()

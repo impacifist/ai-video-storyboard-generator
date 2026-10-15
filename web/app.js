@@ -139,6 +139,7 @@ function setBusy(value, message = "") {
   document.body.classList.toggle("busy", value);
   document.querySelectorAll("button, input, textarea, select").forEach((node) => { node.disabled = value; });
   if (!value) updateProvider(false);
+  updateCastControls();
   settingsDisabled();
   if (message) notice(message);
 }
@@ -155,14 +156,28 @@ function inputField(label, name, multiline = false, required = false) {
   return wrapper;
 }
 
-function buildCharacters() {
-  for (let i = 0; i < 2; i++) {
+function readCharacters() {
+  return [...$("#characters").children].map((card) => Object.fromEntries(
+    [...card.querySelectorAll("input, textarea")].map((input) => [input.name.replace(/^c\d+_/, ""), input.value])));
+}
+
+function updateCastControls() {
+  const count = $("#characters").children.length;
+  $("#tab-cast span").textContent = String(count).padStart(2, "0");
+  $("#cast-count").textContent = tr("{0} / 5명", {0: count});
+  $("#add-character").disabled = busy || count >= 5;
+  document.querySelectorAll(".remove-character").forEach((button) => { button.disabled = busy || count <= 1; });
+}
+
+function buildCharacters(characters = [{id: "girl_1"}, {id: "girl_2"}]) {
+  $("#characters").replaceChildren();
+  characters.forEach((character, i) => {
     const card = el("fieldset", "character");
     card.append(el("legend", "", `CHARACTER 0${i + 1}`));
     const id = el("input");
     id.type = "hidden";
     id.name = `c${i}_id`;
-    id.value = `girl_${i + 1}`;
+    id.value = character.id;
     const top = el("div", "character-top");
     top.append(el("span", "avatar", String(i + 1)), inputField(tr("이름"), `c${i}_name`, false, true));
     card.append(id, top, inputField(tr("성격 · 상대를 대하는 태도"), `c${i}_personality`, true, true),
@@ -178,8 +193,27 @@ function buildCharacters() {
       details.append(inputField(label, `c${i}_${key}`, true));
     }
     card.append(details);
+    const remove = el("button", "text-button remove-character", tr("캐릭터 삭제"));
+    remove.type = "button";
+    remove.addEventListener("click", () => {
+      if (busy || characters.length <= 1) return;
+      const current = readCharacters();
+      if (Object.entries(current[i]).some(([key, value]) => key !== "id" && value.trim()) &&
+          !window.confirm(tr("이 캐릭터를 삭제할까요? 입력한 설정이 사라집니다."))) return;
+      current.splice(i, 1);
+      buildCharacters(current);
+      dirty = true;
+    });
+    card.append(remove);
     $("#characters").append(card);
-  }
+    for (const [key, value] of Object.entries(character)) {
+      const input = form.elements.namedItem(`c${i}_${key}`);
+      if (input) input.value = value;
+    }
+  });
+  markRequired($("#characters"));
+  I18n.capture($("#characters"));
+  updateCastControls();
 }
 
 function readBrief() {
@@ -190,7 +224,7 @@ function readBrief() {
   }
   brief.duration = Number(text("duration"));
   brief.shot_count = Number(text("shot_count"));
-  brief.characters = [0, 1].map((i) => Object.fromEntries(
+  brief.characters = readCharacters().map((_, i) => Object.fromEntries(
     ["id", "name", "personality", "speech", "desire", "fear", "habit", "fixed"].map((k) => [k, text(`c${i}_${k}`)])));
   brief.characters.forEach((character, i) => {
     for (const key of ["gender", "age"]) if (text(`c${i}_${key}`)) character[key] = text(`c${i}_${key}`);
@@ -200,8 +234,9 @@ function readBrief() {
 
 function validateBriefInputs() {
   const fields = [["title", tr("프로젝트 이름"), "cast"],
-    ["c0_name", tr("첫 번째 캐릭터 이름"), "cast"], ["c0_personality", tr("첫 번째 캐릭터 성격"), "cast"],
-    ["c1_name", tr("두 번째 캐릭터 이름"), "cast"], ["c1_personality", tr("두 번째 캐릭터 성격"), "cast"],
+    ...readCharacters().flatMap((_, i) => [
+      [`c${i}_name`, tr("캐릭터 {0} 이름", {0: i + 1}), "cast"],
+      [`c${i}_personality`, tr("캐릭터 {0} 성격", {0: i + 1}), "cast"]]),
     ["location", tr("장소"), "world"], ["situation", tr("시작 상황"), "world"],
     ["intent", tr("원하는 상호작용"), "direction"], ["ending", tr("원하는 결말"), "direction"]];
   for (const [name, label, tab] of fields) {
@@ -233,13 +268,10 @@ function sameData(left, right) {
 }
 
 function fillBrief(brief) {
+  buildCharacters(brief.characters);
   for (const [key, value] of Object.entries(brief)) {
     if (key !== "characters" && form.elements.namedItem(key)) form.elements.namedItem(key).value = value;
   }
-  brief.characters.forEach((character, i) => {
-    for (const key of ["gender", "age"]) form.elements.namedItem(`c${i}_${key}`).value = character[key] || "";
-    for (const [key, value] of Object.entries(character)) form.elements.namedItem(`c${i}_${key}`).value = value;
-  });
 }
 
 function activateTab(name) {
@@ -530,13 +562,27 @@ async function loadExample() {
   return true;
 }
 
+function markRequired(root) {
+  root.querySelectorAll("[required]").forEach((input) => {
+    const label = input.closest("label");
+    if (!label || label.querySelector(".required-mark")) return;
+    const marker = el("span", "required-mark", " # ");
+    marker.setAttribute("aria-label", tr("필수 입력"));
+    label.insertBefore(marker, input);
+  });
+}
 buildCharacters();
-form.querySelectorAll("[required]").forEach((input) => {
-  const label = input.closest("label");
-  if (!label) return;
-  const marker = el("span", "required-mark", " # ");
-  marker.setAttribute("aria-label", tr("필수 입력"));
-  label.insertBefore(marker, input);
+markRequired(form);
+$("#add-character").addEventListener("click", () => {
+  if (busy) return;
+  const characters = readCharacters();
+  if (characters.length >= 5) return;
+  let next = 1;
+  while (characters.some((character) => character.id === `character_${next}`)) next++;
+  characters.push({id: `character_${next}`});
+  buildCharacters(characters);
+  dirty = true;
+  form.elements.namedItem(`c${characters.length - 1}_name`).focus();
 });
 // Hidden required controls are validated by the API, so tabs never block submission.
 form.noValidate = true;
@@ -970,6 +1016,7 @@ $(".language-control").addEventListener("focusout", (event) => {
 });
 
 window.addEventListener("languagechange", () => {
+  updateCastControls();
   // Re-render UI chrome only. Never call generation, overwrite a form, or translate stored content.
   $("#notice").textContent = I18n.system($("#notice").textContent);
   for (const selector of ["#settings-error", "#edit-error"]) $(selector).textContent = I18n.system($(selector).textContent);
@@ -1054,6 +1101,8 @@ async function ensureGuides() {
 function applyGuide(reset = true) {
   const family = $("#video-family").value;
   const custom = family === "custom";
+  $("#clip-limit").min = custom ? "1" : "4";
+  $("#clip-limit").step = custom ? "0.1" : "1";
   $("#custom-guide-fields").hidden = !custom;
   $("#official-guide-preview").hidden = custom;
   $("#reference-panel").hidden = custom || $("#video-guide").value === "text";

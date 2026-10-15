@@ -4,6 +4,7 @@
 MiniMax 공식 문서의 컷 연결, 공간 앵커, 컷 내부 연기 설계를 참고했다.
 특정 3D 화풍, 코미디 훅 할당량, 매초 카메라 변경은 강제하지 않는다.
 일본 2D 애니메이션 기본 연출과 변환 계약은 anime-direction.md, 추가 조사 근거는 storyboard-direction-research.md를 함께 참고한다.
+사용자 제공 이미지의 카메라 기법 001~075 한국어 번역과 프롬프트는 [camera-techniques.ko.md](camera-techniques.ko.md)를 참고한다. 장면 목적에 맞게 선택하고 사용 횟수나 종류를 강제하지 않는다.
 
 참고:
 - https://github.com/MiniMax-AI/MiniMax-H3/blob/main/skills/3d-animation-short-generator/references/shot-table-spec.md

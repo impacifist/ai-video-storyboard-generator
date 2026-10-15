@@ -275,10 +275,15 @@ def assemble(document, layout, draft, profile, assets):
             if planned.get("exit_boundary_id"):
                 key = planned["exit_boundary_id"]
                 body.append(f"End at shared boundary {key}: {boundaries[key]}")
+            has_hold = index == len(clip["shots"]) and "content_duration" in clip
+            if has_hold:
+                body.append(f"From {clip['content_duration']:g}s to {clip['duration']:g}s, hold the final frame. "
+                            "Add no dialogue, action, camera motion or new shot. Apply the ending transition only after this hold.")
             if planned.get("continues_in_next"):
                 body.append("Continue this source shot into the next clip without an edit or camera reset.")
             else:
-                body.append("At the end of this source shot: " + camera["transition"])
+                ending = "After the final-frame hold: " if has_hold else "At the end of this source shot: "
+                body.append(ending + camera["transition"])
             bodies.append("\n".join(body))
         description = "\n\n".join(bodies)
         refs = []
@@ -304,6 +309,9 @@ def assemble(document, layout, draft, profile, assets):
         rendered.append({"id": clip["id"], "prompt": prompt})
     english_notes = list(draft["notes"])
     for clip in layout["clips"]:
+        if "content_duration" in clip:
+            english_notes.append(f"{clip['id']}: source content {clip['content_duration']:g}s; generated duration "
+                                 f"{clip['duration']:g}s. Hold the final frame for the remaining time; source timing is unchanged.")
         for shot in clip["shots"]:
             available = shot["end"] - shot["start"]
             if shot.get("speech_estimate_seconds", 0) > available:

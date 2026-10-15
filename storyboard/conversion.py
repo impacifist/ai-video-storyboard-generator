@@ -4,7 +4,7 @@ import copy
 import hashlib
 import json
 import re
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 
 from . import clip_planning, guides, prompt_renderer, providers, references
 from .engine import validate_document
@@ -138,15 +138,24 @@ def fixed_plan(document, selected, limit):
 
 
 def preflight(document, payload):
-    layout = plan(document, payload.get("selected"), payload.get("limit", 15), payload.get("split_mode", "shots"))
     selected_guide = guides.profile(payload["guide_id"]) if payload.get("guide_id") else None
+    limit = payload.get("limit", 15)
+    if selected_guide:
+        if type(limit) not in (int, float) or not 4 <= limit <= 15 or limit != int(limit):
+            raise ValidationError("공식 가이드의 클립 최대 길이는 정수 4~15초로 설정해주세요.")
+        limit = int(limit)
+    layout = plan(document, payload.get("selected"), limit, payload.get("split_mode", "shots"))
     assets = references.manifest(payload.get("id"), payload.get("references", []), selected_guide) if selected_guide else []
     if not selected_guide and payload.get("references"):
         raise ValidationError("이미지 사용 여부에 맞는 가이드를 선택해주세요.")
     if selected_guide:
         for clip in layout["clips"]:
-            if not 4 <= clip["duration"] <= 15 or not clip["duration"].is_integer():
-                raise ValidationError("공식 가이드의 클립 길이는 정수 4~15초여야 합니다. 컷 길이나 선택을 수정해주세요.")
+            content_duration = clip["duration"]
+            clip["duration"] = max(4, int(Decimal(str(content_duration)).to_integral_value(rounding=ROUND_CEILING)))
+            if clip["duration"] > content_duration:
+                clip["content_duration"] = content_duration
+                layout["notes"].append(f"{clip['id']}: 원본 구간 {content_duration:g}초 → 생성 클립 {clip['duration']}초. "
+                                       "남는 시간은 마지막 화면 유지에 사용하며 원본 컷·대사 시간은 유지합니다.")
     return layout, selected_guide, assets
 
 
@@ -229,7 +238,7 @@ def compile_prompts(document, payload):
             "guide_sha256": selected_guide["sha256"] if selected_guide else None,
             "guide_checked_at": selected_guide["checked_at"] if selected_guide else None,
             "system_prompt": system_prompt, "scope": scope,
-            "assembly_version": 4, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
+            "assembly_version": 5, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
             "english_reference_notes": draft["reference_notes"],
             "render_labels": prompt_renderer.render_labels(document),
             "validation_report": validation_report,

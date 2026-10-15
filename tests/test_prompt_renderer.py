@@ -11,6 +11,20 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class PromptRendererTests(unittest.TestCase):
+    def test_variable_cast_survives_split_and_prompt_export(self):
+        for count in (1, 5):
+            brief = json.loads((ROOT / "examples/rainy-classroom.json").read_text(encoding="utf-8"))
+            brief["characters"] = [dict(brief["characters"][0], id=f"actor_{i}", name=f"Actor {i}") for i in range(count)]
+            doc = engine.generate({"brief": brief, "provider": "demo"})
+            for shot, seconds in zip(doc["story"]["shots"], [4, 4, 4, 5, 7, 6]):
+                shot["duration"] = seconds
+            layout = conversion.plan(doc, [s["id"] for s in doc["story"]["shots"]], split_mode="fixed")
+            for target in ("minimax-h3-text", "seedance-2-text"):
+                output, _ = prompt_renderer.assemble(doc, layout, direction_output(layout), guides.profile(target), [])
+                self.assertEqual(len(output["clips"]), 2)
+                for character in brief["characters"]:
+                    self.assertTrue(any(character["name"] in clip["prompt"] for clip in output["clips"]))
+
     def setUp(self):
         brief = json.loads((ROOT / "examples/rainy-classroom.json").read_text(encoding="utf-8"))
         self.doc = engine.generate({"brief": brief, "provider": "demo"})

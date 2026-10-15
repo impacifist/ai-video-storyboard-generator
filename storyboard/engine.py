@@ -17,6 +17,8 @@ SHOT_DIRECTION = (Path(__file__).resolve().parent.parent / "docs" / "guides" /
                   "storyboard-direction.md").read_text(encoding="utf-8")
 SHOT_DIRECTION += "\n\n" + (Path(__file__).resolve().parent.parent / "docs" / "guides" /
                              "anime-direction.md").read_text(encoding="utf-8")
+SHOT_DIRECTION += "\n\n" + (Path(__file__).resolve().parent.parent / "docs" / "guides" /
+                             "camera-techniques.ko.md").read_text(encoding="utf-8")
 SHOT_DIRECTION += "\n\n" + dialogue.VOICE_RULES
 
 DIRECTOR = """당신은 한국어 애니메이션 각본가이자 콘티 연출가입니다.
@@ -28,10 +30,12 @@ DIRECTOR = """당신은 한국어 애니메이션 각본가이자 콘티 연출�
 사용자가 지정한 장소·시간·결말·필수 요소·제외 요소를 지키세요.
 추가로 창작한 사실은 assumptions에 기록하세요. 사용자 입력 사실과 구분하세요.
 요청 shot_count만큼 생성하고 컷 ID는 S01, S02 순서로 지정하세요.
-각 컷 start_state와 end_state에는 화면 밖 인물을 포함해 두 캐릭터 상태를 모두 기록하세요.
+캐릭터는 입력된 1~5명만 사용하세요. 모든 인물을 매 컷에 등장시키거나 같은 화면에 배치할 필요는 없습니다.
+각 컷 start_state와 end_state에는 화면 밖 인물을 포함해 입력된 모든 캐릭터 상태를 기록하세요.
 소품 holder는 캐릭터 ID 또는 빈 문자열입니다. 각 컷의 종료 상태와 다음 시작 상태는
 동일한 상황이면 정확히 같은 표현을 재사용하세요. 이동·시간 경과는 행동과 전환에 설명하세요.
 총 예상 길이는 목표 duration에 맞추되 대사 낭독과 행동 시간을 확보하세요.
+별도 시간 지정이 없다면 각 컷 duration은 소수점 없는 양의 정수 초로 설계하세요. 고정 컷의 기존 길이는 보존하세요.
 고정된 컷은 그대로 두고 앞뒤 컷을 그 상태에 맞추세요. 생성 컷의 locked는 false입니다.
 연출 설명은 한국어로 쓰고 ID는 보존하세요. 대사는 사용자가 요청한 언어로 쓰고, 언어 미지정 시 한국어로 쓰세요.
 특정 영상 모델용 문법은 쓰지 마세요.""" + "\n\n" + SHOT_DIRECTION
@@ -55,7 +59,7 @@ def demo_story(brief, revision=""):
     """A transparent UI fixture, never represented as AI reasoning."""
     chars = brief["characters"]
     state = {"characters": [
-        {"character_id": c["id"], "position": f"{brief['location']} {'왼쪽' if i == 0 else '오른쪽'}",
+        {"character_id": c["id"], "position": f"{brief['location']} 위치 {i + 1}",
          "pose": "서 있다", "gaze": "상대", "emotion": "차분함"}
         for i, c in enumerate(chars)], "props": []}
     count = brief["shot_count"]
@@ -63,11 +67,11 @@ def demo_story(brief, revision=""):
     shots = []
     for i in range(count):
         purpose = purposes[min(i, len(purposes) - 1)]
-        speaker = chars[i % 2]
+        speaker = chars[i % len(chars)]
         shots.append({
             "id": f"S{i + 1:02d}", "scene_id": "SC01", "duration": round(brief["duration"] / count, 2),
             "purpose": purpose,
-            "visual": f"{brief['location']}, {brief['time']}. {chars[0]['name']}와 {chars[1]['name']}의 {purpose}.",
+            "visual": f"{brief['location']}, {brief['time']}. {', '.join(c['name'] for c in chars)}의 {purpose}.",
             "actions": [f"{speaker['name']}가 상대를 바라본다.",
                         f"행동 습관 참고: {speaker['habit'] or '사용자가 구체화할 행동'}"],
             "dialogue": [{"speaker": speaker["id"], "text": "잠깐, 같이 이야기할래?" if i % 2 == 0 else "응, 듣고 있어.",
@@ -75,7 +79,7 @@ def demo_story(brief, revision=""):
             "camera": {"size": "와이드" if i in (0, count - 1) else "미디엄" if i % 2 else "클로즈업",
                        "angle": "눈높이", "movement": "고정", "transition": "컷"},
             "start_state": copy.deepcopy(state), "end_state": copy.deepcopy(state),
-            "continuity": "두 인물의 위치와 시선을 유지한다. 예시 동작은 실제 이야기로 수정해야 한다.",
+            "continuity": "인물의 위치와 시선을 유지한다. 예시 동작은 실제 이야기로 수정해야 한다.",
             "locked": False,
         })
     return {"summary": f"[예시 템플릿] {brief['intent']} / 목표 결말: {brief['ending']}",

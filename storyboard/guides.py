@@ -20,7 +20,8 @@ def scope_rules():
 
 def assembly_rules():
     return ((ROOT / "dialogue-assembly.md").read_text(encoding="utf-8") + "\n\n" +
-            (ROOT / "anime-direction.md").read_text(encoding="utf-8"))
+            (ROOT / "anime-direction.md").read_text(encoding="utf-8") + "\n\n" +
+            (ROOT / "camera-techniques.ko.md").read_text(encoding="utf-8"))
 
 
 def profile(key):

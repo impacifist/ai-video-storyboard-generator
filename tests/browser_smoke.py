@@ -61,6 +61,37 @@ def main():
             expect(page.locator("#provider-note")).to_contain_text("전송 없음")
             page.screenshot(path=str(screenshots / "desktop-empty.png"), full_page=True)
             page.locator("#example").click()
+            # Cast edits preserve stable IDs and values; all sizes are usable.
+            for index in range(2, 5):
+                page.locator("#add-character").click()
+                page.locator(f'[name="c{index}_name"]').fill(f"Actor {index}")
+                page.locator(f'[name="c{index}_personality"]').fill("Patient and observant")
+            expect(page.locator("#characters > fieldset")).to_have_count(5)
+            expect(page.locator("#add-character")).to_be_disabled()
+            expect(page.locator("#characters .required-mark")).to_have_count(10)
+            page.set_viewport_size({"width": 390, "height": 844})
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+            page.set_viewport_size({"width": 1440, "height": 1000})
+            page.locator("#generate").click()
+            expect(page.locator(".shot")).to_have_count(6)
+            assert page.evaluate("project.brief.characters.length") == 5
+            saved = page.evaluate("JSON.parse(JSON.stringify(project.brief))")
+            page.locator(".remove-character").nth(1).click()
+            expect(page.locator("#characters > fieldset")).to_have_count(4)
+            assert page.locator('[name="c1_id"]').input_value() == saved["characters"][2]["id"]
+            expect(page.locator('[name="c1_name"]')).to_have_value("Actor 2")
+            page.evaluate("brief => fillBrief(brief)", saved)
+            expect(page.locator("#characters > fieldset")).to_have_count(5)
+            assert page.evaluate("readBrief().characters") == saved["characters"]
+            for _ in range(4):
+                page.locator(".remove-character").last.click()
+            expect(page.locator(".remove-character")).to_be_disabled()
+            page.locator("#generate").click()
+            expect(page.locator("#notice")).to_contain_text("예시 콘티입니다")
+            assert page.evaluate("project.brief.characters.length") == 1
+            page.reload()
+            page.locator("#example").click()
+            expect(page.locator("#characters > fieldset")).to_have_count(2)
             page.locator("#tab-world").click()
             page.locator('[name="location"]').fill("")
             page.locator("#tab-cast").click()

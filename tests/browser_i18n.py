@@ -56,6 +56,21 @@ def main():
             page.locator("#generate").click()
             expect(page.locator("#notice")).to_have_text("Enter Project title.")
             assert not posts, posts
+            for _ in range(3):
+                page.locator("#add-character").click()
+            page.locator('[name="c4_name"]').fill("Keep this name 名前")
+            expect(page.locator("#add-character")).to_be_disabled()
+            choose("ja")
+            expect(page.locator("#add-character")).to_have_text("キャラクターを追加")
+            expect(page.locator("#cast-count")).to_have_text("5 / 5人")
+            expect(page.locator(".remove-character").last).to_have_text("キャラクターを削除")
+            choose("ko")
+            expect(page.locator("#add-character")).to_have_text("캐릭터 추가")
+            expect(page.locator("#cast-count")).to_have_text("5 / 5명")
+            choose("en")
+            expect(page.locator("#cast-count")).to_have_text("5 / 5 characters")
+            expect(page.locator('[name="c4_name"]')).to_have_value("Keep this name 名前")
+            assert not posts, posts
             page.locator("#settings-open").click()
             expect(page.locator("#settings-title")).to_have_text("API settings")
             expect(page.locator("#settings-openai-key")).to_have_attribute("placeholder", "Enter only to replace the key")

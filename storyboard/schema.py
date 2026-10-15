@@ -71,10 +71,10 @@ def validate(value, schema, path="root"):
 
 def validate_brief(brief):
     validate(brief, BRIEF, "brief")
-    if len(brief["characters"]) != 2:
-        raise ValidationError("첫 버전은 캐릭터 두 명을 지원합니다.")
+    if not 1 <= len(brief["characters"]) <= 5:
+        raise ValidationError("캐릭터는 1~5명까지 설정할 수 있습니다.")
     ids = [c["id"] for c in brief["characters"]]
-    if len(set(ids)) != 2 or any(not i.strip() for i in ids):
+    if len(set(ids)) != len(ids) or any(not i.strip() for i in ids):
         raise ValidationError("캐릭터 ID는 비어 있지 않고 서로 달라야 합니다.")
     for c in brief["characters"]:
         if not c["name"].strip() or not c["personality"].strip():
@@ -115,7 +115,7 @@ def validate_story(story, brief):
         for key in ("start_state", "end_state"):
             states = shot[key]["characters"]
             if len(states) != len(ids) or {s["character_id"] for s in states} != ids:
-                raise ValidationError(f"{shot['id']}.{key}: 두 캐릭터의 상태가 필요합니다.")
+                raise ValidationError(f"{shot['id']}.{key}: 모든 캐릭터의 상태가 필요합니다.")
             for state in states:
                 if any(not v.strip() for v in state.values()):
                     raise ValidationError(f"{shot['id']}.{key}: 상태 설명이 비어 있습니다.")

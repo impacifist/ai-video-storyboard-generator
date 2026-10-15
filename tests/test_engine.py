@@ -19,6 +19,34 @@ def document():
 
 
 class ContractTests(unittest.TestCase):
+    def test_variable_cast_generation_and_document_roundtrip(self):
+        for count in range(1, 6):
+            with self.subTest(count=count):
+                value = brief()
+                template = value["characters"][0]
+                value["characters"] = [dict(template, id=f"actor_{i}", name=f"Actor {i}") for i in range(count)]
+                doc = engine.generate({"brief": value, "provider": "demo"})
+                engine.validate_document(json.loads(json.dumps(doc)))
+                ids = {c["id"] for c in value["characters"]}
+                for shot in doc["story"]["shots"]:
+                    for key in ("start_state", "end_state"):
+                        self.assertEqual({c["character_id"] for c in shot[key]["characters"]}, ids)
+                self.assertEqual({s["dialogue"][0]["speaker"] for s in doc["story"]["shots"]}, ids)
+                doc["story"]["shots"][0]["start_state"]["characters"].pop()
+                with self.assertRaises(ValidationError):
+                    engine.validate_document(doc)
+
+    def test_cast_bounds_and_duplicate_ids(self):
+        for count in (0, 6):
+            value = brief()
+            value["characters"] = [dict(value["characters"][0], id=f"actor_{i}") for i in range(count)]
+            with self.assertRaisesRegex(ValidationError, "1~5"):
+                validate_brief(value)
+        value = brief()
+        value["characters"] = [value["characters"][0]] * 5
+        with self.assertRaisesRegex(ValidationError, "ID"):
+            validate_brief(value)
+
     def test_direction_contract_reaches_every_generation_provider_with_original_schema(self):
         for provider in ("openai", "claude", "ollama"):
             with self.subTest(provider=provider):

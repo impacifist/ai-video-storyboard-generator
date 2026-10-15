@@ -188,6 +188,53 @@ def configuration():
     ]}
 
 
+def read_chat_stream(response):
+    """Collect bounded SSE content; never treat a disconnected stream as success."""
+    content, finish, size, event = [], None, 0, []
+    message = {}
+    while True:
+        raw = response.readline(MAX_RESPONSE + 1)
+        size += len(raw)
+        if size > MAX_RESPONSE:
+            raise ProviderError("AI 응답이 너무 큽니다. 컷 수를 줄여주세요.")
+        if not raw:
+            raise ProviderError("AI 스트리밍 응답이 중단되었습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
+        line = raw.decode("utf-8").rstrip("\r\n")
+        if line.startswith("data:"):
+            event.append(line[5:].lstrip(" "))
+        if line or not event:
+            continue
+        data, event = "\n".join(event), []
+        if data == "[DONE]":
+            if finish is None:
+                raise ProviderError("AI 스트리밍 응답이 중단되었습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
+            message["content"] = "".join(content)
+            return {"choices": [{"finish_reason": finish, "message": message}]}
+        chunk = json.loads(data)
+        if not isinstance(chunk, dict) or chunk.get("error"):
+            raise ProviderError("AI 스트리밍 서버가 오류를 반환했습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
+        choices = chunk.get("choices")
+        if not isinstance(choices, list) or len(choices) > 1:
+            raise ValueError("Invalid stream choices")
+        if not choices:  # Usage-only final events contain no generated text.
+            continue
+        choice = choices[0]
+        if not isinstance(choice, dict) or choice.get("index", 0) != 0:
+            raise ValueError("Invalid stream choice")
+        delta = choice.get("delta", {})
+        if not isinstance(delta, dict):
+            raise ValueError("Invalid stream delta")
+        text = delta.get("content")
+        if text is not None:
+            if not isinstance(text, str):
+                raise ValueError("Invalid stream content")
+            content.append(text)
+        for field in ("refusal", "tool_calls"):
+            if delta.get(field):
+                message[field] = True
+        finish = choice.get("finish_reason") or finish
+
+
 def request_json(url, payload, headers, timeout=180):
     request = Request(url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                       headers={"Content-Type": "application/json", **headers}, method="POST")
@@ -195,6 +242,8 @@ def request_json(url, payload, headers, timeout=180):
     opener = build_opener(ProxyHandler({}), NoRedirect())
     try:
         with opener.open(request, timeout=timeout) as response:
+            if payload.get("stream") is True:
+                return read_chat_stream(response)
             raw = response.read(MAX_RESPONSE + 1)
         if len(raw) > MAX_RESPONSE:
             raise ProviderError("AI 응답이 너무 큽니다. 컷 수를 줄여주세요.")
@@ -204,6 +253,10 @@ def request_json(url, payload, headers, timeout=180):
         return value
     except HTTPError as exc:
         # Upstream errors may echo user input or credentials. Do not relay them.
+        if exc.code in (502, 503, 504):
+            raise ProviderError(f"AI 제공 서버 오류 또는 시간 초과 (HTTP {exc.code}). 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.") from None
+        if exc.code == 429:
+            raise ProviderError("AI 요청 한도 또는 동시 요청 제한에 도달했습니다 (HTTP 429). 진행 중인 요청이 끝난 뒤 다시 시도해주세요.") from None
         raise ProviderError(f"AI 요청 실패 (HTTP {exc.code}). 키·모델·사용 한도를 확인해주세요.") from None
     except (URLError, TimeoutError, socket.timeout, OSError):
         raise ProviderError("AI 서버에 연결할 수 없거나 응답 시간이 초과되었습니다. 자동 재시도하지 않았습니다.") from None
@@ -236,7 +289,9 @@ def generate_json(provider, model, system, user, schema):
         base, mode, output = openai_options(settings)
         headers = {"Authorization": f"Bearer {key}"}
         if mode == "chat_completions":
-            payload = {"model": model, "stream": False, "messages": [
+            # Crowbot supports SSE; receiving chunks avoids waiting for a full long response.
+            stream = urlsplit(base).hostname == "api.crowbot.sh"
+            payload = {"model": model, "stream": stream, "messages": [
                 {"role": "system", "content": instruction}, {"role": "user", "content": user}]}
             token_field = "max_completion_tokens" if urlsplit(base).hostname == "api.openai.com" else "max_tokens"
             payload[token_field] = 16000
