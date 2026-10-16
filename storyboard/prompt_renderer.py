@@ -120,7 +120,8 @@ def export_text(result):
         notes = {r["label"]: r["note"] for r in result["english_reference_notes"]}
         for item in result["references"]:
             note = notes[item["label"]]
-            lines.append(f"{item['order']}. {item['label']} | {result['render_labels'][item['character_id']]} | {item['role']}"
+            owner = "Background" if item["role"] == "environment" else result["render_labels"][item["character_id"]]
+            lines.append(f"{item['order']}. {item['label']} | {owner} | {item['role']}"
                          + (f" | {note}" if note else ""))
         lines.append("")
     plans = {c["id"]: c for c in result["plan"]["clips"]}
@@ -288,11 +289,19 @@ def assemble(document, layout, draft, profile, assets):
         description = "\n\n".join(bodies)
         refs = []
         for item, translated in zip(assets, draft["reference_notes"]):
+            if item["note"] and not translated["note"].strip():
+                raise ValidationError("reference_notes.note: missing English reference translation")
+            if item["role"] == "environment":
+                refs.append(f"Background — {item['label']}; environment reference. {translated['note']} "
+                            "Use this reference for the matching location's architecture and spatial layout. "
+                            "Preserve the relative positions of seats, doors, windows, aisles and fixed landmarks "
+                            "across shots and clips, including reverse angles. Change viewpoint, not the set geometry. "
+                            "Do not copy people from the background image or use it as a character identity reference. "
+                            "Keep approved character actions and camera direction; apply this reference only to its matching location.")
+                continue
             character_index = next(i for i, c in enumerate(document["brief"]["characters"], 1)
                                    if c["id"] == item["character_id"])
             identity = f"<Subject {character_index}> " if h3 else ""
-            if item["note"] and not translated["note"].strip():
-                raise ValidationError("reference_notes.note: missing English reference translation")
             refs.append(f"{identity}{names[item['character_id']]} — {item['label']}; "
                         f"reference role: {item['role']}. {translated['note']}")
         if h3:

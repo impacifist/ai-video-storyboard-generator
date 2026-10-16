@@ -11,7 +11,7 @@ from storyboard.schema import ValidationError, validate_brief
 
 ROOT = Path(__file__).resolve().parent
 BUSY = threading.Lock()
-MAX_BODY = 1_000_000
+MAX_BODY = 16_000_000
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -104,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
         body_limit = 6_800_000 if self.path == "/api/references/upload" else MAX_BODY
         if not 0 < length <= body_limit:
             self.send_json({"error": "이미지 형식과 5MB 이하 크기를 확인해주세요." if self.path == "/api/references/upload"
-                            else "요청은 1MB 이내여야 합니다."}, 413)
+                            else "요청은 16MB 이내여야 합니다."}, 413)
             return
         try:
             payload = json.loads(self.rfile.read(length))

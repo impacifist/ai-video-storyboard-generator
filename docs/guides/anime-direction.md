@@ -8,6 +8,8 @@ Design the opening composition and the space needed for the whole action, not me
 
 For quiet 2D dialogue scenes, prefer stable layouts and selective character animation. Holds, eye movements, restrained head turns, hand acting and delayed reactions can carry the beat. A held composition is not a frozen or lifeless performance. Choose broader action for a brief that calls for it; do not impose elastic 3D acting on every scene. Avoid gratuitous orbits, handheld shake, lens effects or continuous zooms. A move is appropriate when it reveals information, follows necessary action or changes the intended emphasis.
 
+Stable does not mean using the same frontal medium view for every beat. In generation, read the dialogue's intention and its effect on the listener, then choose the attention target and composition. Consider a listener reaction, profile, over-the-shoulder view, meaningful hand/prop detail, spatial two-shot, negative space or foreground/background relationship when the story supports it. Vary what the viewer understands, not merely the shot-size label. A static view can be compositionally rich. Do not force variety, invent props or add edits inside a source shot. For a larger cast, select the active relationship or observer rather than showing every face equally in every view.
+
 ## Acting and editing
 
 Make the stimulus, its recognition, and the character's response legible. Do not pile multiple unrelated expressions and body actions onto the same instant. Allow anticipation and a readable settling pose where useful, including subtle anticipation in restrained acting. Preserve the user's dramatic tempo instead of assigning a fixed pause to every line.
@@ -18,7 +20,13 @@ Use the existing storyboard fields for this design: purpose for the viewing reas
 
 ## Conversion preserves the design
 
+Apply the shared action-causality.md policy to every setting: prerequisites, perception and knowledge, action order, elapsed time and persistent consequences. Use it during generation and review as well as conversion. Do not limit causal planning to physical movement or a catalogue of familiar situations.
+
 Translate the approved camera and layout into the required English camera component for every planned segment. Preserve its source size, angle, movement and transition; do not redesign an approved storyboard during conversion. Describe the primary subject and its placement in camera.layout. Keep direction for acting, with no contradictory camera instructions. The renderer emits these camera fields explicitly. Do not put timestamps or dialogue in camera fields.
+
+Preserve approved enabling conditions, event order and consequences in English, carrying still-relevant states into later clip contexts. Conversion does not repair missing causal steps by inventing them: identify source gaps in advisory notes for storyboard revision. Missing prerequisites alone are not a new automatic save blocker.
+
+Preserve the approved layout's dramatic specifics: who is being watched, profile or back view, meaningful crop, foreground shoulder or other existing occluder, depth order, gaze space and separation between characters. Do not flatten an asymmetric over-the-shoulder view into a generic frontal two-shot or replace an intended listener reaction with the speaking character. Retain only specified details; do not add a composition merely because it appears in the technique catalogue. In 2D, depth may be conveyed through placement and overlap without invented optical blur. Keep the relevant face, hands or prop readable at the approved framing. If the source does not state a detail, describe only what can be supported without changing its design.
 
 A technical 15-second split may divide a single source shot. Continue the same view, ongoing motion and canonical state without restarting a move or treating the split as a new edit. Only the segment that ends the source shot receives its ending transition. Do not invent the next shot's action inside the current shot or invent an additional shot after the selected plan ends.
 

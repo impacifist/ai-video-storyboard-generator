@@ -40,20 +40,32 @@ def polish_japanese(story, brief, provider, model, revision=""):
               "facts, intention and speaker. Do not translate non-Japanese lines. Do not output profiles or explanations. "
               "Respect explicit verbatim-wording requirements in the brief and revision. "
               "Locked-shot dialogue is context only and must not appear in the output.")
-    response = providers.generate_json(provider, model, system, json.dumps({
-        "task": "japanese_dialogue_proofread", "brief": brief, "revision_request": revision,
-        "story_context": story, "lines": lines}, ensure_ascii=False), POLISH_OUTPUT)
-    validate(response, POLISH_OUTPUT, "dialogue_proofread")
-    if [line["id"] for line in response["lines"]] != [line["id"] for line in lines]:
-        raise ValidationError("日本語の校正結果で台詞の順序またはIDが変更されました。")
-    for original, corrected in zip(lines, response["lines"]):
-        if original["text"].strip() and not corrected["text"].strip():
-            raise ValidationError("日本語の校正結果に空の台詞があります。")
-        if re.search(r"[ぁ-ヿ]", original["text"]) and not re.search(r"[ぁ-ヿ]", corrected["text"]):
-            raise ValidationError("日本語の台詞を別言語に変更することはできません。")
-        if not re.search(r"[ぁ-ヿ一-鿿]", original["text"]) and original["text"] != corrected["text"]:
-            raise ValidationError("日本語以外の台詞は変更できません。")
-    edits = {line["id"]: line["text"] for line in response["lines"]}
+    batches, current, characters = [], [], 0
+    for line in lines:
+        if current and (len(current) >= 12 or characters + len(line["text"]) > 5000):
+            batches.append(current)
+            current, characters = [], 0
+        current.append(line)
+        characters += len(line["text"])
+    if current:
+        batches.append(current)
+    corrected_lines = []
+    for batch in batches:
+        response = providers.generate_json(provider, model, system, json.dumps({
+            "task": "japanese_dialogue_proofread", "brief": brief, "revision_request": revision,
+            "story_context": story, "lines": batch}, ensure_ascii=False), POLISH_OUTPUT)
+        validate(response, POLISH_OUTPUT, "dialogue_proofread")
+        if [line["id"] for line in response["lines"]] != [line["id"] for line in batch]:
+            raise ValidationError("日本語の校正結果で台詞の順序またはIDが変更されました。")
+        for original, corrected in zip(batch, response["lines"]):
+            if original["text"].strip() and not corrected["text"].strip():
+                raise ValidationError("日本語の校正結果に空の台詞があります。")
+            if re.search(r"[ぁ-ヿ]", original["text"]) and not re.search(r"[ぁ-ヿ]", corrected["text"]):
+                raise ValidationError("日本語の台詞を別言語に変更することはできません。")
+            if not re.search(r"[ぁ-ヿ一-鿿]", original["text"]) and original["text"] != corrected["text"]:
+                raise ValidationError("日本語以外の台詞は変更できません。")
+        corrected_lines.extend(response["lines"])
+    edits = {line["id"]: line["text"] for line in corrected_lines}
     result = copy.deepcopy(story)
     for shot in result["shots"]:
         if not shot["locked"]:

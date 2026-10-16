@@ -63,7 +63,7 @@
           <p id="official-guide-status" class="helper" role="status"></p>
           <div id="custom-guide-fields" hidden><label>대상 영상 모델 · 정확한 버전<input id="target-model" maxlength="200" placeholder="사용할 영상 모델과 버전"></label><label>프롬프트 가이드 출처<input id="guide-source" maxlength="2048" placeholder="공식 문서 주소 또는 가이드 이름·버전"></label><label>모델의 프롬프트 가이드<textarea id="conversion-guide" rows="7" maxlength="20000" placeholder="해당 모델과 입력 방식에 맞는 가이드 본문을 입력하세요. 주소만으로 자동 수집하지 않습니다."></textarea></label></div>
           </section>
-          <section id="reference-panel"><h3>캐릭터 참조 이미지</h3><p class="helper">캐릭터별로 여러 장을 추가할 수 있습니다. 전체 9장, 장당 5MB 이하 PNG·JPEG·WebP. 얼굴과 전신을 우선하고 이미지마다 참조할 특징을 적어주세요.</p><p class="helper">이미지는 이 PC에 보관합니다. 변환 AI에는 이미지의 캐릭터·용도·설명만 전송하며 이미지 자체를 분석하지 않습니다. 영상 제작 시 ZIP의 순서대로 직접 첨부하세요.</p><div id="reference-characters"></div><div id="reference-list"></div><button id="references-save" class="secondary">참조 설정 저장</button></section>
+          <section id="reference-panel"><h3>캐릭터·배경 참조 이미지</h3><p class="helper">캐릭터와 배경에 여러 장을 추가할 수 있습니다. 합쳐서 9장, 장당 5MB 이하 PNG·JPEG·WebP.</p><p class="helper">이미지는 이 PC에 보관합니다. 변환 AI에는 이미지의 캐릭터·용도·설명만 전송하며 이미지 자체를 분석하지 않습니다. 영상 제작 시 ZIP의 순서대로 직접 첨부하세요.</p><div id="reference-characters"></div><h4>배경 참조 이미지</h4><p class="helper">같은 장소의 전체 구조와 다른 각도를 추가하세요. 설명에 적용할 장소, 좌석·문·창문·통로의 위치와 캐릭터가 앉을 자리를 적으면 구도 유지에 도움이 됩니다.</p><div id="reference-background"></div><div id="reference-list"></div><button id="references-save" class="secondary">참조 설정 저장</button></section>
           <section class="conversion-settings-section"><h3>클립 분할</h3>
           <div class="form-grid split-settings"><label>클립 분할 방식<select id="split-mode"><option value="shots">컷·장면 경계 보존</option><option value="fixed" selected>시간 기준 분할 · 최대 길이마다</option><option value="speech">대사 시간 확보 · 전체 길이 늘리기</option></select></label><label>클립 최대 길이 · 초<input id="clip-limit" type="number" min="1" max="15" step="0.1" value="15"></label></div>
           <p class="helper">시간 기준은 30초를 15초 + 15초로 유지합니다. 대사 시간 확보는 전체 길이를 늘립니다. 원본 콘티는 보존됩니다.</p>
@@ -113,7 +113,10 @@
               <div class="form-grid"><label>반드시 포함<textarea name="required" rows="3" placeholder="한 줄에 한 요소"></textarea></label><label>제외할 요소<textarea name="excluded" rows="3" placeholder="한 줄에 한 요소"></textarea></label></div>
               <label>표현 스타일<textarea name="style" rows="2" placeholder="작은 몸짓과 반응 샷 중심의 일상 애니메이션"></textarea></label>
             </div>
-            <div class="production"><label>목표 길이 <span>초</span><input name="duration" type="number" min="10" max="180" value="30" required></label><label>컷 수<input name="shot_count" type="number" min="3" max="12" value="6" required></label></div>
+            <div class="production"><label>목표 길이 <span>초</span><input name="duration" type="number" min="10" max="180" value="30" required aria-describedby="shot-recommendation shot-recommendation-basis"></label><label>컷 수<input name="shot_count" type="number" min="3" max="60" value="6" required aria-describedby="shot-recommendation shot-recommendation-basis"></label></div>
+            <p id="shot-recommendation" class="helper" role="status" aria-live="polite"></p>
+            <p id="shot-recommendation-basis" class="helper">대화·감정 중심 2D 연출을 위한 참고값입니다. 컷당 약 4~6초로 계산하며, 대사와 동작에 맞춰 조정하세요.</p>
+            <p id="large-story-note" class="helper" hidden>13컷 이상을 AI로 제작하면 전체 설계 후 최대 6컷씩 나누어 생성합니다. API 호출과 비용이 늘어나며, 모든 묶음을 검증한 뒤 완성본으로 저장합니다.</p>
             <details class="provider-box" open>
               <summary>제작 엔진 <span>AI PROVIDER</span></summary>
               <div class="form-grid"><label>제공자<select id="provider"><option value="demo">예시 모드 · 전송 없음</option><option value="ollama">Ollama</option><option value="openai">OpenAI</option><option value="claude">Claude</option></select></label><label>모델 ID <span id="model-required" class="required-mark" hidden aria-label="AI 사용 시 필수">#</span><input id="model" placeholder="사용할 모델 ID" autocomplete="off"></label></div>

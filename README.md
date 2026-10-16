@@ -4,15 +4,15 @@ English · [한국어](README.ko.md)
 
 A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
 
-**v0.3.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.4.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.3.0-beta) · [Release notes](docs/releases/v0.3.0-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.4.0-beta) · [Release notes](docs/releases/v0.4.0-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
-This release adds 1–5 character editing, [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md), Crowbot streaming, and automatic final-frame padding for fractional clip durations. Camera directions are selected from the story context; a separate camera prompt is optional.
+This release adds background references, 3–60 shots with duration-based suggestions, outline-first generation for longer storyboards, and richer 2D composition and causal-continuity guidance. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) remain available; a separate camera prompt is optional.
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
 
@@ -31,14 +31,14 @@ No additional Python packages are required to run the app. The template demo wor
 ## Workflow
 
 1. Open API settings and configure OpenAI, an OpenAI-compatible endpoint, Claude, or Ollama. Enter a model ID available through your provider. Saving settings does not call the model.
-2. Add or remove character personas (1–5), then enter their relationships, location, situation, and story direction. Generate, edit, lock, and regenerate shots.
+2. Add or remove character personas (1–5), then enter their relationships, location, situation, and story direction. Choose 3–60 shots for a 10–180-second storyboard; a duration-based suggestion helps with pacing. For 13+ shots, AI generation first plans the full arc, then expands batches of up to 6 shots with prior-shot context and locked anchors. This uses more API calls and costs more; all batches must validate before returning the completed storyboard. Each call retains a 16,000-token budget. Generation and regeneration failures never return a partial storyboard as complete.
 3. Use Manage to search, reopen, preview, trash, or restore saved storyboards.
 4. Open Convert, select shots, choose Seedance 2.0 or MiniMax H3, and review the clip plan and guide. By default, a 30-second timeline becomes two 15-second clips. Plans follow actual shot durations.
-5. Optionally attach multiple character reference images, set their roles, and arrange attachment order. Generate prompts and download TXT, JSON, or a ZIP with reference images.
+5. Optionally attach multiple character and background reference images, set their roles, and arrange attachment order. Generate prompts and download TXT, JSON, or a ZIP with reference images.
 
 The interface supports English (default), Korean, and Japanese. The globe menu saves your language choice across browser sessions. Source dialogue and user content retain their original language.
 
-Character settings include optional gender and age alongside speaking style. For Japanese dialogue, specify pronouns, politeness and example lines in speaking style. AI generation runs one additional dialogue proofreading pass when Japanese lines are present, increasing API usage. Locked shots and dialogue supplied verbatim in the inputs are excluded. If proofreading fails, the generated draft remains available with a review warning. This is AI assistance, not a guarantee of native-level Japanese; video conversion preserves the approved dialogue verbatim.
+Character settings include optional gender and age alongside speaking style. For Japanese dialogue, specify pronouns, politeness and example lines in speaking style. AI generation runs one additional dialogue proofreading pass when Japanese lines are present, increasing API usage. Long dialogue lists use bounded batches of up to 12 lines. Locked shots and dialogue supplied verbatim in the inputs are excluded. If any proofreading batch fails, the generated draft remains available with the original dialogue and a review warning. This is AI assistance, not a guarantee of native-level Japanese; video conversion preserves the approved dialogue verbatim.
 
 ## See it in action
 
@@ -80,7 +80,8 @@ Generation, revision, review, and conversion send the relevant text to your sele
 - Built-in profiles support integer clip durations from 4 to 15 seconds. Split shots retain their source offsets and share a single boundary state across adjacent clips.
 - Fractional or sub-4-second clips are padded with an explicit final-frame hold to the next supported whole second (minimum 4). Source shot and dialogue timing is preserved; the plan and exported prompt disclose the added time.
 - Original dialogue and speaker assignments are assembled by the application. Generated direction, state descriptions, delivery instructions, and TXT headings must use English; dialogue may remain in its source language.
-- Reference mode supports up to nine PNG/JPEG/WebP images in total, at most 5 MB each. Attach them to the video service in the exported manifest order.
+- Reference mode supports up to nine character and background PNG/JPEG/WebP images in total, at most 5 MB each. Attach them to the video service in the exported manifest order.
+- Background references have their own upload control in conversion. Add an overview or alternate views of the same location and describe its seating, doors, windows, aisles and character positions. Each clip receives English instructions to preserve the matching location's geometry across camera angles. Images are not visually analyzed by the conversion AI; attach them to the video service along with character references. This guides layout consistency but does not guarantee the video model's output.
 - Optional dialogue timing assistance estimates speaking time and may extend the planned duration without modifying the source storyboard. It is not measured voice timing.
 - Invalid output is not saved. Older conversions made before the English output policy must be converted again for TXT/ZIP export; their JSON remains accessible.
 

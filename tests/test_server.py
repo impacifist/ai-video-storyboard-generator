@@ -127,6 +127,24 @@ class HTTPTests(unittest.TestCase):
     def test_invalid_import_rejected(self):
         self.assertEqual(self.request("/api/validate", {"document": {"schema_version": 999}})[0], 400)
 
+    def test_large_storyboard_can_be_validated_saved_and_loaded(self):
+        from storyboard import engine
+        from test_engine import brief
+        source = brief()
+        source.update(shot_count=60, duration=180)
+        document = engine.generate({"brief": source, "provider": "demo"})
+        for shot in document["story"]["shots"]:
+            shot.update(visual="x" * 10000, actions=["y" * 10000])
+        self.assertGreater(len(json.dumps(document)), 1_000_000)
+        self.assertEqual(self.request("/api/validate", {"document": document})[0], 200)
+        with tempfile.TemporaryDirectory() as temporary, patch.object(library, "ROOT", Path(temporary)):
+            status, _, raw = self.request("/api/library/save", {"document": document})
+            self.assertEqual(status, 200)
+            key = json.loads(raw)["saved"]["id"]
+            status, _, raw = self.request("/api/library/load", {"id": key})
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(raw)["document"], document)
+
     def test_settings_cross_origin_cannot_write(self):
         with patch("storyboard.providers.save_settings") as save:
             status, _, _ = self.request("/api/settings", {"values": {}, "clear_keys": []}, {"Origin": "https://evil.example"})

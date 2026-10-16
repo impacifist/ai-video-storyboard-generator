@@ -97,6 +97,49 @@ class GuideReferencesTests(unittest.TestCase):
         self.assertEqual(manifest[0]["note"], "Costume only")
         self.assertEqual(len({a["character_id"] for a in manifest}), 1)
 
+    def test_background_references_persist_compile_and_export_for_both_models(self):
+        images = [self.upload(), self.upload(kind="background", character_id="")]
+        images[1]["note"] = "좌석은 창문 아래, 문은 통로 끝."
+        references.save(self.key, images)
+        self.assertEqual(references.load(self.key)[1]["role"], "environment")
+        self.assertEqual(references.load(self.key)[1]["character_id"], "")
+        for family, label in (("minimax-h3", "<Picture 2>"), ("seedance-2", "Image 2")):
+            self.payload.update(guide_id=f"{family}-reference", references=images)
+
+            def generate(provider, model, system, user, schema):
+                data = json.loads(user)
+                self.assertIn("BACKGROUND REFERENCES", system)
+                self.assertNotIn("base64", user)
+                self.assertEqual(data["references"][1]["role"], "environment")
+                return direction_output(data["plan"], data["references"])
+
+            with patch("storyboard.providers.generate_json", side_effect=generate):
+                result = conversion.compile_prompts(self.doc, self.payload)
+            for clip in result["output"]["clips"]:
+                self.assertIn(f"Background — {label}", clip["prompt"])
+                self.assertIn("Change viewpoint, not the set geometry", clip["prompt"])
+                self.assertNotIn("<Subject 3>", clip["prompt"])
+            text = prompt_renderer.export_text(result)
+            self.assertIn(f"{label} | Background | environment", text)
+            self.assertNotIn("undefined", text)
+            key = library.save_conversion(self.key, result)
+            with zipfile.ZipFile(io.BytesIO(references.package(key))) as archive:
+                manifest = json.loads(archive.read("manifest.json"))
+                self.assertEqual(manifest[1]["role"], "environment")
+                self.assertEqual(archive.read(manifest[1]["file"]), PNG)
+                self.assertEqual(archive.read("video-prompts.txt").decode("utf-8"), text)
+
+    def test_background_cannot_be_reassigned_to_character_and_legacy_upload_stays_character(self):
+        character = self.upload()
+        background = self.upload(kind="background", character_id="")
+        self.assertEqual(character["role"], "face")
+        for image, role in ((character, "environment"), (background, "face")):
+            with self.assertRaises(ValidationError):
+                references.save(self.key, [{**image, "role": role}])
+        for overrides in ({"kind": "invalid"}, {"kind": "background"}):
+            with self.assertRaises(ValidationError):
+                self.upload(**overrides)
+
     def test_h3_aliases_are_canonical_in_prompts_and_txt_but_not_dialogue(self):
         self.payload["references"] = [self.upload(), self.upload()]
         self.doc["story"]["shots"][0]["dialogue"][0]["text"] = "Image 1 is my favorite."

@@ -248,8 +248,9 @@ function validateBriefInputs() {
       throw new Error(tr("{0} 항목을 입력해주세요.", {0: label}));
     }
   }
-  for (const [name, label, min, max] of [["duration", tr("목표 길이"), 10, 180], ["shot_count", tr("컷 수"), 3, 12]]) {
+  for (const [name, label] of [["duration", tr("목표 길이")], ["shot_count", tr("컷 수")]]) {
     const input = form.elements.namedItem(name);
+    const min = Number(input.min), max = Number(input.max);
     const value = Number(input.value);
     if (!Number.isFinite(value) || value < min || value > max || (name === "shot_count" && !Number.isInteger(value))) {
       input.focus();
@@ -267,11 +268,28 @@ function sameData(left, right) {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+function updateShotRecommendation() {
+  const durationInput = form.elements.namedItem("duration");
+  const duration = Number(durationInput.value);
+  const countInput = form.elements.namedItem("shot_count");
+  const hint = $("#shot-recommendation");
+  $("#large-story-note").hidden = Number(countInput.value) <= 12 || !Number.isFinite(Number(countInput.value));
+  if (!durationInput.value || !Number.isFinite(duration) || duration < Number(durationInput.min) || duration > Number(durationInput.max)) {
+    hint.textContent = tr("유효한 목표 길이를 입력하면 권장 컷 수를 표시합니다.");
+    return;
+  }
+  const lower = Math.max(Number(countInput.min), Math.floor(duration / 6));
+  const upper = Math.max(lower, Math.ceil(duration / 4));
+  hint.textContent = lower === upper ? tr("권장 컷 수: 약 {0}컷", {0: lower}) : tr("권장 컷 수: 약 {0}~{1}컷", {0: lower, 1: upper});
+  if (upper > Number(countInput.max)) hint.textContent += " " + tr("현재 최대 {0}컷입니다. 긴 호흡으로 구성하거나 여러 콘티로 나누세요.", {0: countInput.max});
+}
+
 function fillBrief(brief) {
   buildCharacters(brief.characters);
   for (const [key, value] of Object.entries(brief)) {
     if (key !== "characters" && form.elements.namedItem(key)) form.elements.namedItem(key).value = value;
   }
+  updateShotRecommendation();
 }
 
 function activateTab(name) {
@@ -415,7 +433,9 @@ async function generate(regenerate = false) {
     setBusy(true, tr("설정을 확인하고 있습니다…"));
     await api("/api/validate", {brief});
     if (project && !regenerate && !window.confirm(tr("현재 콘티를 새로 만듭니다. 필요한 경우 먼저 JSON으로 저장하세요. 계속할까요?"))) return;
-    setBusy(true, selection.provider === "demo" ? tr("예시 템플릿을 준비하고 있습니다…") : tr("{0}에서 콘티를 만들고 있습니다. 최대 약 3분이 걸릴 수 있습니다…", {0: selection.provider}));
+    setBusy(true, selection.provider === "demo" ? tr("예시 템플릿을 준비하고 있습니다…") : brief.shot_count > 12
+      ? tr("{0}에서 전체 흐름을 설계한 뒤 최대 6컷씩 생성하고 있습니다. 여러 API 호출로 시간이 더 걸릴 수 있습니다…", {0: selection.provider})
+      : tr("{0}에서 콘티를 만들고 있습니다. 최대 약 3분이 걸릴 수 있습니다…", {0: selection.provider}));
     const result = await api("/api/generate", {brief, ...selection,
       previous: regenerate ? project : null, revision: regenerate ? $("#revision").value.trim() : ""});
     project = result.document; checks = result.review; aiReview = null; dirty = true;
@@ -538,7 +558,7 @@ async function importFile(event) {
   const file = event.target.files[0];
   if (!file || busy) return;
   try {
-    if (file.size > 1000000) throw new Error(tr("JSON 파일은 1MB 이내여야 합니다."));
+    if (file.size > 16000000) throw new Error(tr("JSON 파일은 16MB 이내여야 합니다."));
     const value = parseJSON((await file.text()).replace(/^\uFEFF/, ""));
     const isProject = value && Object.hasOwn(value, "schema_version");
     const result = await api("/api/validate", isProject ? {document: value} : {brief: value});
@@ -573,6 +593,7 @@ function markRequired(root) {
 }
 buildCharacters();
 markRequired(form);
+updateShotRecommendation();
 $("#add-character").addEventListener("click", () => {
   if (busy) return;
   const characters = readCharacters();
@@ -588,6 +609,7 @@ $("#add-character").addEventListener("click", () => {
 form.noValidate = true;
 form.addEventListener("submit", (event) => { event.preventDefault(); generate(); });
 form.addEventListener("input", (event) => {
+  if (["duration", "shot_count"].includes(event.target.name)) updateShotRecommendation();
   if (event.target.name) dirty = true;
   if (event.target.id === "model") models.set($("#provider").value, event.target.value);
 });
@@ -888,7 +910,7 @@ function renderConversion(result, date = "", remember = true, savedId = null) {
   downloads.append(textButton, exportButton);
   if (result.references?.length) {
     const list = el("ol", "reference-manifest");
-    for (const item of result.references) list.append(el("li", "", `${item.label} · ${item.character_id} · ${tr(referenceRoles[item.role])} · ${item.name} · ${item.note}`));
+    for (const item of result.references) list.append(el("li", "", `${item.label} · ${item.role === "environment" ? tr("배경") : item.character_id} · ${tr(referenceRoles[item.role])} · ${item.name} · ${item.note}`));
     const detail = el("details", "result-references"); detail.append(el("summary", "", tr("참조 이미지 첨부 순서")), list); section.append(detail);
   }
   if (savedId) {
@@ -907,7 +929,7 @@ function promptText(result) {
     lines.push("REFERENCE ATTACHMENT ORDER");
     for (const item of result.references) {
       const translated = result.english_reference_notes.find((note) => note.label === item.label);
-      lines.push(`${item.order}. ${item.label} | ${result.render_labels[item.character_id]} | ${item.role}${translated.note ? ` | ${translated.note}` : ""}`);
+      lines.push(`${item.order}. ${item.label} | ${item.role === "environment" ? "Background" : result.render_labels[item.character_id]} | ${item.role}${translated.note ? ` | ${translated.note}` : ""}`);
     }
     lines.push("");
   }
@@ -1016,6 +1038,7 @@ $(".language-control").addEventListener("focusout", (event) => {
 });
 
 window.addEventListener("languagechange", () => {
+  updateShotRecommendation();
   updateCastControls();
   // Re-render UI chrome only. Never call generation, overwrite a form, or translate stored content.
   $("#notice").textContent = I18n.system($("#notice").textContent);
@@ -1053,7 +1076,7 @@ window.addEventListener("languagechange", () => {
   if (previewDocument) renderSavedPreview();
 });
 let guideCatalog = [], referenceItems = [], previewDocument = null;
-const referenceRoles = {face: "얼굴", body: "전신", outfit: "의상", expression: "표정", detail: "세부 특징"};
+const referenceRoles = {face: "얼굴", body: "전신", outfit: "의상", expression: "표정", detail: "세부 특징", environment: "배경 구조"};
 
 function readOnlyField(container, label, value) {
   container.append(el("h4", "", tr(label)), el("pre", "source-text", sourceText(value)));
@@ -1132,15 +1155,16 @@ function applyGuide(reset = true) {
 }
 
 function renderReferences() {
-  const characters = $("#reference-characters"), list = $("#reference-list");
-  characters.replaceChildren(); list.replaceChildren();
+  const characters = $("#reference-characters"), backgrounds = $("#reference-background"), list = $("#reference-list");
+  characters.replaceChildren(); backgrounds.replaceChildren(); list.replaceChildren();
   if (!conversionBoard) return;
-  for (const character of conversionBoard.brief.characters) {
-    const label = el("label", "reference-upload", tr("{0} · 이미지 추가", {0: character.name}));
+  for (const character of [...conversionBoard.brief.characters, {id: "", name: tr("배경")}]) {
+    const background = character.id === "";
+    const label = el("label", "reference-upload", background ? tr("배경 이미지 추가") : tr("{0} · 이미지 추가", {0: character.name}));
     const input = el("input"); input.type = "file"; input.accept = "image/png,image/jpeg,image/webp"; input.multiple = true;
     input.addEventListener("change", () => libraryAction(async () => {
       const files = [...input.files];
-      if (referenceItems.length + files.length > 9) throw new Error(tr("캐릭터 참조 이미지는 전체 9장 이내로 선택해주세요."));
+      if (referenceItems.length + files.length > 9) throw new Error(tr("캐릭터와 배경 참조 이미지는 합쳐서 9장 이내로 선택해주세요."));
       for (const file of files) {
         if (file.size > 5000000) throw new Error(tr("이미지 형식과 5MB 이하 크기를 확인해주세요."));
       }
@@ -1148,24 +1172,25 @@ function renderReferences() {
         const data = await new Promise((resolve, reject) => {
           const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error(tr("이미지를 읽을 수 없습니다."))); reader.readAsDataURL(file);
         });
-        const uploaded = await api("/api/references/upload", {id: conversionBoardId, character_id: character.id, name: file.name, data});
+        const uploaded = await api("/api/references/upload", {id: conversionBoardId, character_id: character.id, kind: background ? "background" : "character", name: file.name, data});
         referenceItems.push(uploaded.asset);
         // Save after each upload so a subsequent failure cannot lose successful additions.
         await api("/api/references/save", {id: conversionBoardId, references: referenceItems});
       }
       renderReferences(); invalidateConversion(); $("#conversion-consent").checked = false;
     }));
-    label.append(input); characters.append(label);
+    label.append(input); (background ? backgrounds : characters).append(label);
   }
   referenceItems.forEach((item, index) => {
     const card = el("article", "reference-card");
     const img = el("img"); img.src = `/api/references/image/${item.id}`; img.alt = item.name; img.loading = "lazy";
     const controls = el("div", "reference-controls");
-    const name = conversionBoard.brief.characters.find((c) => c.id === item.character_id)?.name || item.character_id;
+    const background = item.role === "environment";
+    const name = background ? tr("배경") : conversionBoard.brief.characters.find((c) => c.id === item.character_id)?.name || item.character_id;
     const tag = $("#video-family").value === "minimax" ? `<Picture ${index + 1}>` : `Image ${index + 1}`;
     controls.append(el("strong", "", `${tag} · ${name}`), el("p", "helper", item.name));
     const roleLabel = el("label", "", tr("참조 용도")), role = el("select");
-    for (const [value, label] of Object.entries(referenceRoles)) { const option = el("option", "", tr(label)); option.value = value; role.append(option); }
+    for (const [value, label] of Object.entries(referenceRoles).filter(([value]) => background ? value === "environment" : value !== "environment")) { const option = el("option", "", tr(label)); option.value = value; role.append(option); }
     role.value = item.role;
     const noteLabel = el("label", "", tr("참조할 특징 설명")), note = el("textarea"); note.rows = 2; note.maxLength = 1000; note.value = item.note;
     const changed = () => { invalidateConversion(); $("#conversion-consent").checked = false; };

@@ -21,6 +21,7 @@ def scope_rules():
 def assembly_rules():
     return ((ROOT / "dialogue-assembly.md").read_text(encoding="utf-8") + "\n\n" +
             (ROOT / "anime-direction.md").read_text(encoding="utf-8") + "\n\n" +
+            (ROOT / "action-causality.md").read_text(encoding="utf-8") + "\n\n" +
             (ROOT / "camera-techniques.ko.md").read_text(encoding="utf-8"))
 
 
@@ -43,7 +44,8 @@ def profile(key):
                    "The renderer inserts original-language dialogue and assigns speakers by vocal appearance. "
                    "Separate ambient sound from non-diegetic music; N/A if absent.")
         if mode == "reference":
-            system += (" Define <Subject N> once per character and associate all its <Picture N> assets. "
+            system += (" Define <Subject N> once per character and associate its character-reference <Picture N> assets. "
+                       "Environment references describe locations and must not be assigned to a character Subject. "
                        "Use attachment tokens exactly as <Picture 1>, <Picture 2>, etc. everywhere, including "
                        "subject_definitions, retention_analysis and reference notes; never use Image N. "
                        "Retention analysis must state which identity/style attributes to preserve from each asset.")

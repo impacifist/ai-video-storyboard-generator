@@ -19,6 +19,17 @@ def document():
 
 
 class ContractTests(unittest.TestCase):
+    def test_large_storyboards_generate_and_reload(self):
+        for count in (13, 30, 60):
+            with self.subTest(count=count):
+                value = brief()
+                value.update(shot_count=count, duration=180)
+                result = engine.generate({"brief": value, "provider": "demo"})
+                restored = json.loads(json.dumps(result))
+                engine.validate_document(restored)
+                self.assertEqual(len(restored["story"]["shots"]), count)
+                self.assertEqual(restored["story"]["shots"][-1]["id"], f"S{count:02d}")
+
     def test_variable_cast_generation_and_document_roundtrip(self):
         for count in range(1, 6):
             with self.subTest(count=count):
@@ -99,7 +110,7 @@ class ContractTests(unittest.TestCase):
             validate_brief(value)
 
     def test_reject_wrong_counts_numbers_and_missing_intent(self):
-        for key, value in [("shot_count", 2), ("shot_count", True), ("duration", float("nan")),
+        for key, value in [("shot_count", 2), ("shot_count", 61), ("shot_count", True), ("duration", float("nan")),
                            ("duration", 181), ("intent", "")]:
             with self.subTest(key=key, value=value):
                 data = brief()

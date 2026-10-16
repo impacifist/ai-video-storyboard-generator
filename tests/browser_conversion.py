@@ -90,6 +90,11 @@ def main():
             expect(page.locator(".reference-card")).to_have_count(3)
             page.locator("#reference-characters input").nth(1).set_input_files(files[:1])
             expect(page.locator(".reference-card")).to_have_count(4)
+            page.locator("#reference-background input").set_input_files(files[:1])
+            expect(page.locator(".reference-card")).to_have_count(5)
+            expect(page.locator(".reference-card strong").last).to_contain_text("배경")
+            assert page.locator(".reference-card select").last.input_value() == "environment"
+            page.locator(".reference-card textarea").last.fill("Seats under the windows; doors at the end of the aisle.")
             page.locator(".reference-card select").first.select_option("body")
             page.locator(".reference-card textarea").first.fill("Only outfit. 원문 유지。")
             page.locator(".reference-card").first.get_by_role("button", name="뒤로", exact=True).click()
@@ -141,13 +146,14 @@ def main():
             with zipfile.ZipFile(io.BytesIO(response.body())) as archive:
                 assert archive.read("video-prompts.txt").decode("utf-8").replace("\r\n", "\n") == self_text
                 manifest = json.loads(archive.read("manifest.json"))
-                assert len(manifest) == 4 and manifest[0]["label"] == "<Picture 1>"
+                assert len(manifest) == 5 and manifest[0]["label"] == "<Picture 1>"
+                assert manifest[4]["role"] == "environment" and manifest[4]["label"] == "<Picture 5>"
                 assert archive.read(manifest[0]["file"]) == PNG
             page.reload()
             page.locator("#nav-convert").click()
             page.get_by_role("button", name="이 콘티 선택", exact=True).click()
             page.locator("#video-guide").select_option("reference")
-            expect(page.locator(".reference-card")).to_have_count(4)
+            expect(page.locator(".reference-card")).to_have_count(5)
             expect(page.locator(".reference-card textarea").nth(1)).to_have_value("Only outfit. 원문 유지。")
             page.locator("#conversion-consent").check()
             page.locator("#conversion-run").click()

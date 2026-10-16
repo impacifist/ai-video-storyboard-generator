@@ -56,6 +56,23 @@ def main():
             page.locator("#generate").click()
             expect(page.locator("#notice")).to_have_text("Enter Project title.")
             assert not posts, posts
+            expect(page.locator("#shot-recommendation")).to_have_text("Suggested shot count: about 5–8")
+            page.locator('[name="shot_count"]').fill("7")
+            for seconds, expected in [("15", "3–4"), ("60", "10–15"), ("180", "30–45")]:
+                page.locator('[name="duration"]').fill(seconds)
+                expect(page.locator("#shot-recommendation")).to_contain_text(expected)
+                expect(page.locator('[name="shot_count"]')).to_have_value("7")
+            expect(page.locator('[name="shot_count"]')).to_have_attribute("max", "60")
+            expect(page.locator("#shot-recommendation")).not_to_contain_text("current limit")
+            page.locator('[name="duration"]').fill("")
+            expect(page.locator("#shot-recommendation")).to_contain_text("Enter a valid target duration")
+            page.locator('[name="duration"]').fill("30")
+            choose("ja")
+            expect(page.locator("#shot-recommendation")).to_have_text("カット数の目安：約5〜8カット")
+            choose("ko")
+            expect(page.locator("#shot-recommendation")).to_have_text("권장 컷 수: 약 5~8컷")
+            choose("en")
+            assert not posts, posts
             for _ in range(3):
                 page.locator("#add-character").click()
             page.locator('[name="c4_name"]').fill("Keep this name 名前")

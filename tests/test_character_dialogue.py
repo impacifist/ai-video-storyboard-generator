@@ -9,6 +9,33 @@ from test_engine import brief
 
 
 class CharacterDialogueTests(unittest.TestCase):
+    def test_large_proofreading_is_bounded_and_atomic_on_late_failure(self):
+        source = brief()
+        source.update(shot_count=25, duration=75)
+        story = engine.demo_story(source)
+        for shot in story["shots"]:
+            shot["dialogue"][0]["text"] = "そうだったんだね。"
+        before = copy.deepcopy(story)
+        for failure in (False, True):
+            calls = []
+            def upstream(provider, model, system, user, schema):
+                request = json.loads(user)
+                calls.append(request)
+                self.assertLessEqual(len(request["lines"]), 12)
+                if failure and len(calls) == 3:
+                    raise providers.ProviderError("mock timeout")
+                return {"lines": [{"id": line["id"], "text": "そうだったんだね。なるほど。"} for line in request["lines"]]}
+            with self.subTest(failure=failure), patch("storyboard.providers.generate_json", side_effect=upstream):
+                if failure:
+                    with self.assertRaises(providers.ProviderError):
+                        dialogue.polish_japanese(story, source, "openai", "fake")
+                else:
+                    result, status = dialogue.polish_japanese(story, source, "openai", "fake")
+                    self.assertEqual(status, "completed")
+                    self.assertTrue(all(s["dialogue"][0]["text"].endswith("なるほど。") for s in result["shots"]))
+            self.assertEqual(story, before)
+            self.assertEqual(len(calls), 3)
+
     def setUp(self):
         self.brief = brief()
         self.brief["characters"][0].update(gender="여성", age="17세, 고등학생", speech="일본어. 친한 친구에게 편하게, 1인칭은私.")

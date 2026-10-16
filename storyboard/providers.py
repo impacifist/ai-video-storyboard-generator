@@ -14,6 +14,7 @@ from .schema import ValidationError, validate
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_RESPONSE = 2_000_000
+MAX_STREAM_BYTES = 32_000_000
 SETTING_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_MODEL", "CLAUDE_MODEL",
                   "OLLAMA_MODEL", "OLLAMA_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_MODE",
                   "OPENAI_OUTPUT_MODE"}
@@ -191,12 +192,13 @@ def configuration():
 def read_chat_stream(response):
     """Collect bounded SSE content; never treat a disconnected stream as success."""
     content, finish, size, event = [], None, 0, []
+    content_size = 0
     message = {}
     while True:
         raw = response.readline(MAX_RESPONSE + 1)
         size += len(raw)
-        if size > MAX_RESPONSE:
-            raise ProviderError("AI 응답이 너무 큽니다. 컷 수를 줄여주세요.")
+        if size > MAX_STREAM_BYTES or len(raw) > MAX_RESPONSE:
+            raise ProviderError("AI 스트리밍 응답이 수신 한도를 초과했습니다. 기존 콘티는 유지됩니다.")
         if not raw:
             raise ProviderError("AI 스트리밍 응답이 중단되었습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
         line = raw.decode("utf-8").rstrip("\r\n")
@@ -228,6 +230,9 @@ def read_chat_stream(response):
         if text is not None:
             if not isinstance(text, str):
                 raise ValueError("Invalid stream content")
+            content_size += len(text.encode("utf-8"))
+            if content_size > MAX_RESPONSE:
+                raise ProviderError("AI 생성 내용이 수신 한도를 초과했습니다. 기존 콘티는 유지됩니다.")
             content.append(text)
         for field in ("refusal", "tool_calls"):
             if delta.get(field):
@@ -246,7 +251,7 @@ def request_json(url, payload, headers, timeout=180):
                 return read_chat_stream(response)
             raw = response.read(MAX_RESPONSE + 1)
         if len(raw) > MAX_RESPONSE:
-            raise ProviderError("AI 응답이 너무 큽니다. 컷 수를 줄여주세요.")
+            raise ProviderError("AI 생성 내용이 수신 한도를 초과했습니다. 기존 콘티는 유지됩니다.")
         value = json.loads(raw)
         if not isinstance(value, dict):
             raise ProviderError("AI 제공자의 응답 형식이 잘못되었습니다.")

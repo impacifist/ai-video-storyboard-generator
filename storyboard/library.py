@@ -39,7 +39,7 @@ def identifier(value):
 def save(document):
     validate_document(document)
     encoded = json.dumps(document, ensure_ascii=False, allow_nan=False)
-    if len(encoded.encode("utf-8")) > 900_000:
+    if len(encoded.encode("utf-8")) > 16_000_000:
         raise ValidationError("저장할 콘티가 너무 큽니다.")
     key, timestamp = uuid.uuid4().hex, now()
     with database() as db:

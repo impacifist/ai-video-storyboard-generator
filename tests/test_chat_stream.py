@@ -43,8 +43,20 @@ class ChatStreamTests(unittest.TestCase):
         self.assertNotIn('secret-token', str(caught.exception))
 
     def test_wire_size_is_bounded_including_ignored_events(self):
-        with patch.object(providers, 'MAX_RESPONSE', 60), self.assertRaises(providers.ProviderError):
+        with patch.object(providers, 'MAX_STREAM_BYTES', 60), self.assertRaises(providers.ProviderError):
             providers.read_chat_stream(response(event({'reasoning_content': 'x' * 100})))
+
+    def test_wire_overhead_is_not_counted_as_generated_content(self):
+        stream = response(*[event({'reasoning_content': 'x' * 100}) for _ in range(20)],
+                          event({'content': '{"ok":true}'}), event(finish='stop'))
+        with patch.object(providers, 'MAX_RESPONSE', 500), patch.object(providers, 'MAX_STREAM_BYTES', 10000):
+            result = providers.read_chat_stream(stream)
+        self.assertEqual(result['choices'][0]['message']['content'], '{"ok":true}')
+
+    def test_generated_content_has_an_independent_bound(self):
+        stream = response(event({'content': 'あ' * 60}), event({'content': 'あ' * 60}), event(finish='stop'))
+        with patch.object(providers, 'MAX_RESPONSE', 300), self.assertRaises(providers.ProviderError):
+            providers.read_chat_stream(stream)
 
     def test_crowbot_adapter_uses_stream_and_keeps_output_validation(self):
         settings = {'OPENAI_API_KEY': 'fake-key', 'OPENAI_BASE_URL': 'https://api.crowbot.sh/v1',

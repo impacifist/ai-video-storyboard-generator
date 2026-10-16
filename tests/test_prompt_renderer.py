@@ -32,18 +32,27 @@ class PromptRendererTests(unittest.TestCase):
 
     def test_camera_and_layout_are_rendered_for_both_targets(self):
         layout = conversion.plan(self.doc, self.ids)
+        compositions = [
+            ("Close-up on the listening character", "Eye level from the same side of the axis",
+             "Character 2 occupies the right third in profile, looking screen-left; leave gaze space. The speaker stays off screen."),
+            ("Medium over-the-shoulder shot on the listener", "Eye level behind Character 1",
+             "Character 1's cropped shoulder occupies the left foreground; Character 2's face is readable in the right middle ground."),
+            ("Close insert on Character 2's hand", "Oblique view at desk height",
+             "Character 2's fingertips rest at the lower-right edge of the desk; faces remain outside the crop. Keep the empty left half visible."),
+        ]
         for target in ("minimax-h3-text", "seedance-2-text"):
-            draft = direction_output(layout)
-            draft["clips"][0]["shots"][0]["camera"] = {
-                "size": "Close-up on the listening character", "angle": "Eye level from the same side of the axis",
-                "movement": "Locked camera", "transition": "Hard cut after the listener looks up",
-                "layout": "Character 2 occupies the right third, looking screen-left; leave space toward the gaze."}
-            before = copy.deepcopy(draft)
-            output, _ = prompt_renderer.assemble(self.doc, layout, draft, guides.profile(target), [])
-            prompt = output["clips"][0]["prompt"]
-            for value in draft["clips"][0]["shots"][0]["camera"].values():
-                self.assertIn(value, prompt)
-            self.assertEqual(draft, before)
+            for size, angle, composition in compositions:
+                with self.subTest(target=target, size=size):
+                    draft = direction_output(layout)
+                    draft["clips"][0]["shots"][0]["camera"] = {
+                        "size": size, "angle": angle, "movement": "Locked camera",
+                        "transition": "Hard cut on the next response", "layout": composition}
+                    before = copy.deepcopy(draft)
+                    output, _ = prompt_renderer.assemble(self.doc, layout, draft, guides.profile(target), [])
+                    prompt = output["clips"][0]["prompt"]
+                    for value in draft["clips"][0]["shots"][0]["camera"].values():
+                        self.assertIn(value, prompt)
+                    self.assertEqual(draft, before)
 
     def test_split_preserves_camera_view_and_delays_transition_until_source_shot_ends(self):
         for shot, seconds in zip(self.doc["story"]["shots"], [8, 8, 8, 2, 2, 2]):

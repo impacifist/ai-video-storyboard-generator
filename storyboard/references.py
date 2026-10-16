@@ -13,6 +13,7 @@ from . import library
 from .schema import ValidationError
 
 ROLES = ("face", "body", "outfit", "expression", "detail")
+BACKGROUND_ROLE = "environment"
 MAX_IMAGE = 5_000_000
 
 
@@ -24,8 +25,13 @@ def tables(db):
 
 def upload(payload):
     board = library.load(payload.get("id"))
-    character = payload.get("character_id")
-    if character not in [c["id"] for c in board["brief"]["characters"]]:
+    background = payload.get("kind", "character") == "background"
+    if payload.get("kind", "character") not in ("character", "background"):
+        raise ValidationError("참조 이미지 설정이 올바르지 않습니다.")
+    character = "" if background else payload.get("character_id")
+    if background and payload.get("character_id") not in (None, ""):
+        raise ValidationError("참조 이미지 설정이 올바르지 않습니다.")
+    if not background and character not in [c["id"] for c in board["brief"]["characters"]]:
         raise ValidationError("참조 이미지의 캐릭터가 원본 콘티와 다릅니다.")
     value = payload.get("data")
     if not isinstance(value, str):
@@ -52,7 +58,7 @@ def upload(payload):
         db.execute("INSERT INTO reference_assets VALUES (?, ?, ?, ?, ?, ?, ?)",
                    (key, payload["id"], character, name, mime, digest, data))
     return {"id": key, "character_id": character, "name": name, "mime": mime, "sha256": digest,
-            "role": "face", "note": ""}
+            "role": BACKGROUND_ROLE if background else "face", "note": ""}
 
 
 def asset(key):
@@ -68,7 +74,7 @@ def asset(key):
 def manifest(board_id, selection, profile=None):
     library.load(board_id)
     if not isinstance(selection, list) or len(selection) > 9:
-        raise ValidationError("캐릭터 참조 이미지는 전체 9장 이내로 선택해주세요.")
+        raise ValidationError("캐릭터와 배경 참조 이미지는 합쳐서 9장 이내로 선택해주세요.")
     if profile and ((profile["mode"] == "text" and selection)
                     or (profile["mode"] == "reference" and not selection)):
         raise ValidationError("이미지 사용 여부에 맞는 가이드를 선택해주세요.")
@@ -78,7 +84,8 @@ def manifest(board_id, selection, profile=None):
             raise ValidationError("참조 이미지 설정이 올바르지 않습니다.")
         row = asset(item.get("id"))
         role, note = item.get("role"), item.get("note", "")
-        if (row["board_id"] != board_id or row["id"] in seen or role not in ROLES
+        allowed_roles = (BACKGROUND_ROLE,) if row["character_id"] == "" else ROLES
+        if (row["board_id"] != board_id or row["id"] in seen or role not in allowed_roles
                 or not isinstance(note, str) or len(note) > 1000):
             raise ValidationError("참조 이미지 설정이 올바르지 않습니다.")
         seen.add(row["id"])

@@ -84,8 +84,8 @@ def validate_brief(brief):
     for name, label in labels.items():
         if not brief[name].strip():
             raise ValidationError(f"{label} 항목을 입력해주세요.")
-    if not 10 <= brief["duration"] <= 180 or not 3 <= brief["shot_count"] <= 12:
-        raise ValidationError("목표 길이는 10~180초, 컷 수는 3~12개여야 합니다.")
+    if not 10 <= brief["duration"] <= 180 or not 3 <= brief["shot_count"] <= 60:
+        raise ValidationError("목표 길이는 10~180초, 컷 수는 3~60개여야 합니다.")
 
 
 def validate_story(story, brief):

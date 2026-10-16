@@ -26,7 +26,15 @@ def fake_upstream(url, payload, headers):
         source = json.loads(payload["input"])
     else:
         source = json.loads(payload["messages"][-1]["content"])
-    if "revision_request" in source:
+    if source.get("task") == "storyboard_outline":
+        story = engine.demo_story(source["brief"])
+        result = {**{k: story[k] for k in ("summary", "beats", "assumptions")},
+                  "shots": [{**{k: s[k] for k in ("id", "scene_id", "duration", "purpose")},
+                             "action": " / ".join(s["actions"])} for s in story["shots"]]}
+    elif source.get("task") == "storyboard_batch":
+        result = engine.demo_story(source["brief"])
+        result["shots"] = [s for s in result["shots"] if s["id"] in source["batch"]["shot_ids"]]
+    elif "revision_request" in source:
         result = engine.demo_story(source["brief"])
         result["summary"] = "브라우저 테스트용 모의 AI 응답"
     else:
@@ -86,9 +94,16 @@ def main():
             for _ in range(4):
                 page.locator(".remove-character").last.click()
             expect(page.locator(".remove-character")).to_be_disabled()
+            page.locator('[name="duration"]').fill("180")
+            page.locator('[name="shot_count"]').fill("60")
             page.locator("#generate").click()
             expect(page.locator("#notice")).to_contain_text("예시 콘티입니다")
+            expect(page.locator(".shot")).to_have_count(60)
             assert page.evaluate("project.brief.characters.length") == 1
+            page.locator('[name="shot_count"]').fill("61")
+            page.locator("#generate").click()
+            expect(page.locator("#notice")).to_contain_text("3~60")
+            expect(page.locator(".shot")).to_have_count(60)
             page.reload()
             page.locator("#example").click()
             expect(page.locator("#characters > fieldset")).to_have_count(2)
@@ -160,6 +175,14 @@ def main():
                 page.get_by_role("button", name="S01 고정 해제", exact=True).click()
                 expect(page.locator("#ai-result")).to_contain_text("아직 실행하지 않았습니다")
             assert len(CALLS) == 9, CALLS
+            page.locator('[name="duration"]').fill("39")
+            page.locator('[name="shot_count"]').fill("13")
+            expect(page.locator("#large-story-note")).to_be_visible()
+            page.locator("#generate").click()
+            expect(page.locator("#notice")).to_contain_text("콘티 초안을 보관함에 저장했습니다")
+            expect(page.locator(".shot")).to_have_count(13)
+            assert len(CALLS) == 13, CALLS  # one outline + three detail batches
+            assert page.evaluate("project.story.shots.at(-1).id") == "S13"
             page.screenshot(path=str(screenshots / "desktop-board.png"), full_page=True)
             page.set_viewport_size({"width": 390, "height": 844})
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "mobile overflow"
