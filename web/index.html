@@ -65,14 +65,13 @@
           </section>
           <section id="reference-panel"><h3>캐릭터·배경 참조 이미지</h3><p class="helper">캐릭터와 배경에 여러 장을 추가할 수 있습니다. 합쳐서 9장, 장당 5MB 이하 PNG·JPEG·WebP.</p><p class="helper">이미지는 이 PC에 보관합니다. 변환 AI에는 이미지의 캐릭터·용도·설명만 전송하며 이미지 자체를 분석하지 않습니다. 영상 제작 시 ZIP의 순서대로 직접 첨부하세요.</p><div id="reference-characters"></div><h4>배경 참조 이미지</h4><p class="helper">같은 장소의 전체 구조와 다른 각도를 추가하세요. 설명에 적용할 장소, 좌석·문·창문·통로의 위치와 캐릭터가 앉을 자리를 적으면 구도 유지에 도움이 됩니다.</p><div id="reference-background"></div><div id="reference-list"></div><button id="references-save" class="secondary">참조 설정 저장</button></section>
           <section class="conversion-settings-section"><h3>클립 분할</h3>
-          <div class="form-grid split-settings"><label>클립 분할 방식<select id="split-mode"><option value="shots">컷·장면 경계 보존</option><option value="fixed" selected>시간 기준 분할 · 최대 길이마다</option><option value="speech">대사 시간 확보 · 전체 길이 늘리기</option></select></label><label>클립 최대 길이 · 초<input id="clip-limit" type="number" min="1" max="15" step="0.1" value="15"></label></div>
-          <p class="helper">시간 기준은 30초를 15초 + 15초로 유지합니다. 대사 시간 확보는 전체 길이를 늘립니다. 원본 콘티는 보존됩니다.</p>
-          <div class="conversion-shortcuts"><button id="conversion-auto-split" class="quiet">전체 콘티를 15초씩 자동 나누기</button><button id="conversion-speech-plan" class="quiet">대사 시간 확보 · 클립 추가 허용</button></div>
-          <button id="conversion-plan" class="secondary">클립 분할 미리보기</button>
+          <p class="helper">콘티의 컷과 대사에 맞춰 길이를 추천합니다. 아래에서 클립별 초만 바꾸면 됩니다. 전체 길이는 달라질 수 있으며 원본 콘티는 유지됩니다.</p>
+          <button id="conversion-plan" class="secondary">클립 길이 자동 추천</button>
+          <details id="split-advanced" class="conversion-advanced"><summary>고급 분할 설정</summary><div class="form-grid split-settings"><label>클립 분할 방식<select id="split-mode"><option value="auto" selected>콘티에 맞게 자동 추천</option><option value="shots">컷·장면 경계 보존</option><option value="fixed">시간 기준 분할 · 최대 길이마다</option><option value="speech">대사 시간 확보 · 전체 길이 늘리기</option></select></label><label>클립 최대 길이 · 초<input id="clip-limit" type="number" min="1" max="15" step="0.1" value="15"></label></div><div class="conversion-shortcuts"><button id="conversion-auto-split" class="quiet">전체 콘티를 15초씩 자동 나누기</button><button id="conversion-speech-plan" class="quiet">대사 시간 확보 · 클립 추가 허용</button></div></details>
           <div id="conversion-plan-result" class="shots"></div>
           </section>
           <details class="conversion-advanced"><summary>변환 AI 연결</summary>
-          <div class="form-grid"><label>프롬프트 변환 AI<select id="conversion-ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="ollama">Ollama</option></select></label><label>변환 AI 모델 ID<input id="conversion-ai-model" maxlength="200" placeholder="API 설정에 등록한 모델 ID"></label></div>
+          <div class="form-grid"><label>프롬프트 변환 AI<select id="conversion-ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option></select></label><label>변환 AI 모델 ID<input id="conversion-ai-model" maxlength="200" placeholder="API 설정에 등록한 모델 ID"></label></div>
           <p id="conversion-ai-note" class="helper"></p>
           </details>
           <details id="official-guide-preview"><summary>적용할 가이드와 시스템 프롬프트</summary><div id="official-guide-links"></div><pre id="official-guide-body" class="prompt-output"></pre><pre id="official-system-body" class="prompt-output"></pre></details>
@@ -115,11 +114,11 @@
             </div>
             <div class="production"><label>목표 길이 <span>초</span><input name="duration" type="number" min="10" max="180" value="30" required aria-describedby="shot-recommendation shot-recommendation-basis"></label><label>컷 수<input name="shot_count" type="number" min="3" max="60" value="6" required aria-describedby="shot-recommendation shot-recommendation-basis"></label></div>
             <p id="shot-recommendation" class="helper" role="status" aria-live="polite"></p>
-            <p id="shot-recommendation-basis" class="helper">대화·감정 중심 2D 연출을 위한 참고값입니다. 컷당 약 4~6초로 계산하며, 대사와 동작에 맞춰 조정하세요.</p>
+            <p id="shot-recommendation-basis" class="helper">권장 컷 수는 참고용이며 반드시 맞출 필요는 없습니다. 긴 호흡의 장면은 컷 수를 줄이고, 빠른 전개는 늘려도 됩니다.</p>
             <p id="large-story-note" class="helper" hidden>13컷 이상을 AI로 제작하면 전체 설계 후 최대 6컷씩 나누어 생성합니다. API 호출과 비용이 늘어나며, 모든 묶음을 검증한 뒤 완성본으로 저장합니다.</p>
             <details class="provider-box" open>
               <summary>제작 엔진 <span>AI PROVIDER</span></summary>
-              <div class="form-grid"><label>제공자<select id="provider"><option value="demo">예시 모드 · 전송 없음</option><option value="ollama">Ollama</option><option value="openai">OpenAI</option><option value="claude">Claude</option></select></label><label>모델 ID <span id="model-required" class="required-mark" hidden aria-label="AI 사용 시 필수">#</span><input id="model" placeholder="사용할 모델 ID" autocomplete="off"></label></div>
+              <div class="form-grid"><label>제공자<select id="provider"><option value="demo">예시 모드 · 전송 없음</option><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option><option value="openai">OpenAI</option><option value="claude">Claude</option></select></label><label>모델 ID <span id="model-required" class="required-mark" hidden aria-label="AI 사용 시 필수">#</span><input id="model" placeholder="사용할 모델 ID" autocomplete="off"></label></div>
               <p id="provider-note" class="helper"></p>
               <p id="key-note" class="helper"></p>
               <label id="consent-label" class="check" hidden><input id="consent" type="checkbox"><span class="required-mark">#</span> 선택한 제공자에 설정·콘티를 전송해 생성 또는 검수합니다.</label>
@@ -155,7 +154,16 @@
   <dialog id="settings-dialog" aria-labelledby="settings-title"><form id="settings-form">
     <div class="section-heading"><div><p class="eyebrow">AI CONNECTIONS</p><h2 id="settings-title">API 설정</h2></div><button id="settings-close" type="button" class="quiet">닫기 ×</button></div>
     <p class="helper">선택한 제공자의 설정만 저장합니다. 다른 제공자의 입력은 저장하거나 검사하지 않습니다. 키 입력란을 비워두면 기존 키를 유지합니다.</p>
-    <label>설정할 제공자<select id="settings-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="ollama">Ollama</option></select></label>
+    <label>설정할 제공자<select id="settings-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option></select></label>
+    <fieldset id="settings-panel-lmstudio" class="character" hidden><legend>LM Studio</legend>
+      <p class="helper">LM Studio의 Developer 탭에서 모델을 로드하고 로컬 서버를 시작하세요. 서버에 표시된 모델 ID를 입력합니다.</p>
+      <label>Base URL<input id="settings-lmstudio-url" type="text" inputmode="url" autocomplete="off" maxlength="2048" placeholder="http://127.0.0.1:1234/v1"></label>
+      <label>기본 모델 ID<input id="settings-lmstudio-model" maxlength="200" placeholder="LM Studio에 표시된 모델 ID"></label>
+      <label>JSON 출력 방식<select id="settings-lmstudio-output"><option value="json_schema">JSON Schema · 엄격한 구조화 출력</option><option value="json_object">JSON 모드 · 모델 지원 필요</option><option value="prompt">프롬프트 JSON · 호환 우선</option></select></label>
+      <p id="settings-lmstudio-status" class="helper"></p>
+      <label>API 키 · 선택<input id="settings-lmstudio-key" type="password" autocomplete="new-password" maxlength="4096" placeholder="LM Studio에서 인증을 켠 경우만 입력"></label>
+      <label class="check"><input id="settings-lmstudio-clear" type="checkbox">저장된 LM Studio 키 삭제</label>
+    </fieldset>
     <fieldset id="settings-panel-ollama" class="character" hidden><legend>OLLAMA</legend>
       <label>연결 주소 · 선택<input id="settings-ollama-url" type="text" inputmode="url" autocomplete="off" placeholder="http://127.0.0.1:11434"></label>
       <label>기본 모델 ID<input id="settings-ollama-model" maxlength="200" placeholder="설치된 모델 ID"></label>

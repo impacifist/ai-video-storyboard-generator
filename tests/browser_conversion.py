@@ -33,7 +33,7 @@ def main():
     thread.start()
     try:
         with tempfile.TemporaryDirectory() as temporary, patch.object(library, "ROOT", Path(temporary)), \
-             patch.object(providers, "load_settings", return_value={"OPENAI_API_KEY": "fake", "OPENAI_MODEL": "fake"}), \
+             patch.object(providers, "load_settings", return_value={"OPENAI_API_KEY": "fake", "OPENAI_MODEL": "fake", "LMSTUDIO_MODEL": "fake"}), \
              patch.object(providers, "generate_json", side_effect=fake_compile) as upstream, sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             page = browser.new_page(viewport={"width": 1440, "height": 1000})
@@ -53,7 +53,15 @@ def main():
             expect(page.locator("#conversion-picker")).not_to_be_visible()
             expect(page.locator("#library-view")).not_to_be_visible()
             expect(page.locator("#conversion-selection")).to_contain_text("6 / 6")
-            assert page.locator("#split-mode").input_value() == "fixed"
+            assert page.locator("#split-mode").input_value() == "auto"
+            expect(page.locator("#split-advanced")).not_to_have_attribute("open", "")
+            page.locator("#conversion-plan").click()
+            expect(page.locator("[data-clip-duration]").first).to_be_visible()
+            page.locator("[data-clip-duration]").first.fill("14")
+            page.locator("[data-clip-duration]").first.press("Tab")
+            expect(page.locator("#conversion-plan-result .library-card h4").first).to_contain_text("14초")
+            assert page.evaluate("clipLengths.C01") == 14
+            upstream.assert_not_called()
             # Source inspection and picker changes do not send anything to the AI.
             page.locator("#conversion-preview").click()
             expect(page.locator("#saved-preview")).to_be_visible()
@@ -108,6 +116,7 @@ def main():
             expect(page.locator(".reference-card strong").first).to_contain_text("<Picture 1>")
             for checkbox in page.locator("#conversion-shots input").all()[3:]:
                 checkbox.uncheck()
+            page.locator("#split-advanced > summary").click()
             page.locator("#conversion-auto-split").click()
             expect(page.locator("#conversion-plan-result h3")).to_contain_text("2개 클립")
             assert page.locator("#conversion-shots input:checked").count() == 6
@@ -169,6 +178,7 @@ def main():
             saved = page.request.post(f"http://127.0.0.1:{server.server_port}/api/library/save", data={"document": document}).json()
             page.evaluate("id => loadSaved(id, true)", saved["saved"]["id"])
             page.locator("#video-guide").select_option("text")
+            page.locator("#split-advanced > summary").click()
             page.locator("#conversion-auto-split").click()
             expect(page.locator("#conversion-plan-result")).to_contain_text("S04: 대사 예상")
             assert page.evaluate("visiblePlan.clips.map(c => c.duration)") == [15, 15]
@@ -215,9 +225,37 @@ def main():
                         results = page.locator("#conversion-results").bounding_box()
                         assert work["x"] + work["width"] < results["x"]
                         assert page.locator("#conversion-view").bounding_box()["width"] >= width - 100
+            # Simple path: automatic suggestion, one numeric edit, conversion.
+            page.evaluate("I18n.select('ko')")
+            page.locator("#split-mode").select_option("auto")
+            page.locator("#split-advanced > summary").click()
+            page.locator("#conversion-plan").click()
+            expect(page.locator("[data-clip-duration]").first).to_be_visible()
+            page.locator("[data-clip-duration]").first.fill("14")
+            page.locator("[data-clip-duration]").first.press("Tab")
+            expect(page.locator("#conversion-plan-result .library-card h4").first).to_contain_text("14초")
+            edited_source = page.evaluate("JSON.stringify(conversionBoard)")
+            page.locator(".conversion-advanced:has(#conversion-ai-provider) > summary").click()
+            page.locator("#conversion-ai-provider").select_option("lmstudio")
+            for language in ("en", "ja", "ko"):
+                page.evaluate("lang => I18n.select(lang)", language)
+                expect(page.locator("[data-clip-duration]").first).to_have_value("14")
+                assert page.evaluate("clipLengths.C01") == 14
+            page.locator("#conversion-consent").check()
+            page.locator("#conversion-run").click()
+            expect(page.locator("#conversion-results .prompt-output").first).to_contain_text("Timing:")
+            assert page.evaluate("conversionResult.plan.clips[0].duration") == 14
+            assert page.evaluate("conversionResult.provider") == "lmstudio"
+            assert page.evaluate("JSON.stringify(conversionBoard)") == edited_source
+            expect(page.locator("#conversion-results .prompt-output").first).to_contain_text("Timing:")
+            for width in (1920, 1440, 768, 390, 320):
+                page.set_viewport_size({"width": width, "height": 900})
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), width
             screenshots = ROOT / "storage/browser-check"
             screenshots.mkdir(parents=True, exist_ok=True)
             page.evaluate("I18n.select('en')")
+            page.set_viewport_size({"width": 1440, "height": 1000})
+            page.locator(".conversion-settings-section:has(#conversion-plan)").screenshot(path=str(screenshots / "clip-lengths.png"))
             page.set_viewport_size({"width": 2560, "height": 1200})
             page.evaluate("scrollTo(0, 0)")
             page.screenshot(path=str(screenshots / "conversion-wide.png"), full_page=True)

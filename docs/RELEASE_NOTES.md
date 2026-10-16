@@ -1,5 +1,11 @@
 # 업데이트 내역
 
+## v0.5.0-beta · 2026-10-17
+
+클립 길이 자동 추천·수정, 자동 모드의 컷별 시간 배분, 인접 클립 연결 지시·발화 계기, LM Studio 지원과 권장 컷 수 안내를 포함합니다.
+
+[v0.5.0-beta 상세 내역과 설치 안내](releases/v0.5.0-beta.md)
+
 ## v0.4.0-beta · 2026-10-16
 
 배경 이미지 참조, 최대 60컷·권장 컷 수, 전체 설계 후 분할 생성, 구도·인과 지침과 긴 응답 처리 개선을 포함합니다.
@@ -19,7 +25,7 @@
 - **한국어 참고 이미지 3장:** 기본 움직임, 샷 크기·각도·시점, 초점·렌즈·구도를 정리한 PNG를 포함했습니다. 참고 자료이며 앱이 콘티 그림을 자동 생성하는 기능은 아닙니다. 원본 076~100번 자료는 제공되지 않아 포함하지 않았습니다.
 - **소수점 클립 길이 변환 수정:** 공식 프로필에서 소수점 길이나 4초 미만의 구간 때문에 변환이 막히던 문제를 수정했습니다. 예를 들어 7.4초 구간은 마지막 화면 유지 0.6초를 추가해 8초 클립으로 변환합니다. 원본 컷·대사·분할 오프셋은 유지하고 추가 시간을 계획·검토 메모·영상 프롬프트·TXT에 명시합니다. 마지막 전환은 화면 유지 이후에 적용합니다. 직접 입력 가이드는 기존 소수점 처리를 유지합니다.
 - **정수 초 기본 연출:** 새 콘티는 별도 시간 지정이 없으면 컷 길이를 정수 초로 설계하도록 지침을 보완했습니다. 기존 고정 컷의 길이는 보존합니다.
-- **Crowbot 긴 응답 처리:** Crowbot의 Chat Completions 연결에 스트리밍을 적용했습니다. 응답 중단·불완전 종료·출력 잘림·거절·도구 호출은 성공으로 저장하지 않습니다. 자동 재시도나 모델 자동 교체는 하지 않습니다.
+- **긴 응답 처리:** 응답 중단·불완전 종료·출력 잘림·거절·도구 호출은 성공으로 저장하지 않습니다. 자동 재시도나 모델 자동 교체는 하지 않습니다.
 - **오류 안내 개선:** HTTP 502·503·504는 제공 서버 오류·시간 초과, HTTP 429는 요청·동시 실행 제한으로 구분합니다. API 키나 서버의 원문 오류 본문은 표시하지 않습니다.
 
 ## 설치·업데이트
@@ -31,29 +37,23 @@
 
 다운로드 ZIP에는 소스·문서·예제·테스트와 한국어 참고 이미지가 포함됩니다. 개인 API 키·로컬 설정·저장 콘티·사용자 업로드·진단 결과는 포함하지 않습니다. `SHA256SUMS.txt`로 ZIP의 체크섬을 확인할 수 있습니다.
 
-## Crowbot 연결 참고
-
-앱에서 제공자는 **OpenAI**를 선택하고 Base URL은 `https://api.crowbot.sh/v1`, API 방식은 **Chat Completions**로 지정합니다. 모델 ID는 서비스에서 실제 제공 중인 정확한 ID를 사용하세요. JSON Schema로 실제 콘티 요청이 실패하면 **프롬프트 JSON**을 사용할 수 있으며, 앱의 출력 구조 검증은 계속 적용됩니다. API 키는 사용자가 직접 등록해야 합니다. 이 릴리스는 특정 모델이나 API 키를 기본값으로 배포하지 않습니다.
-
-공식 연결 문서: https://crowbot.sh/docs/api · 모델 목록: https://crowbot.sh/docs/models
-
 ## 검증 범위
 
 - Python 테스트 119개, Ruff, 브라우저 테스트 5종(생성·설정·보관함·변환·다국어)이 통과했습니다.
 - 소수점·최소 길이·분할 경계·원본 보존·대사 보존·최종 화면 유지와 TXT 내보내기를 자동 검증했습니다. 스트림 중단·거절·도구 호출·크기 제한·오류 정보 비노출도 검사했습니다.
-- Crowbot의 Claude 연결에서 실제 예제 6컷 생성과 앱 문서 검증을 확인했습니다(약 75~80초). 이는 해당 예제·연결의 확인 결과이며 모든 모델이나 긴 입력의 성공을 보장하지 않습니다.
+- 실제 예제 6컷 생성과 앱 문서 검증을 확인했습니다(약 75~80초). 이는 해당 예제·연결의 확인 결과이며 모든 모델이나 긴 입력의 성공을 보장하지 않습니다.
 - 전체 영상 프롬프트 변환과 브라우저 흐름은 모의 AI로 검증했습니다. 실제 영상 생성·품질·낭독 시간은 검증하지 않았습니다. 프레임 유지 시간만큼 출력 영상 길이가 원본보다 늘어날 수 있습니다.
 - 앱은 텍스트 콘티와 영상 프롬프트를 생성하며 영상 렌더링·자동 합치기를 제공하지 않습니다. 오픈소스 라이선스는 아직 지정하지 않았습니다.
 
 ## English
 
-This beta adds 1–5 character personas, a Korean catalog of 75 camera techniques with three reference posters, Crowbot streaming for long Chat Completions responses, and clearer gateway/concurrency errors.
+This beta adds 1–5 character personas, a Korean catalog of 75 camera techniques with three reference posters, response-completion checks, and clearer gateway/concurrency errors.
 
 Official-profile conversion now pads fractional or short clips to a whole-number duration of 4–15 seconds with an explicit final-frame hold. A 7.4-second source becomes an 8-second generation clip; original shot timestamps, dialogue and split offsets are preserved, and the final transition follows the hold. Custom guides retain their fractional timing. Newly generated storyboards are instructed to use whole-second shot durations by default.
 
 Install Python 3.12+, extract the ZIP into a new folder, stop the old server, back up and copy your private `storage/`, `.local-secrets/` and optional `.env`, then run `start.bat` or `python server.py`. Restarting the backend is required; refreshing the browser alone does not reload Python changes. Existing saved documents and conversion results are not rewritten.
 
-Validation: 119 unit tests, Ruff and all five mocked browser suites passed. A live six-shot example was generated and validated through Crowbot's Claude connection. Full prompt conversion and video production quality were not verified against live video services. The archive excludes credentials, private projects, uploads and diagnostic artifacts.
+Validation: 119 unit tests, Ruff and all five mocked browser suites passed. A live six-shot example was generated and validated. Full prompt conversion and video production quality were not verified against live video services. The archive excludes credentials, private projects, uploads and diagnostic artifacts.
 
 ---
 

@@ -1,11 +1,13 @@
 # 초기 구현 설계
 
+후속 설계안: [장면의 흐름을 우선하는 클립 변환](design/continuity-first-conversion.md). 생성 구간과 실제 편집점을 구분하고, 문맥 프레임을 제외한 시간 예산·인접 클립 연결·간단한 조작 흐름을 정의합니다. 구현 완료를 뜻하지 않습니다.
+
 ## 구성
 
 - `server.py`: loopback 전용 HTTP 서버, 정적 화면, 생성·검수·검증·내보내기 API
 - `storyboard/schema.py`: 입력, 컷, 상태, AI 검수의 공통 계약 및 형식 검증
 - `storyboard/engine.py`: 연출 지시, 생성, 고정 컷 병합, 출처·이력, 연속성 검사
-- `storyboard/providers.py`: Ollama / OpenAI / Claude의 서버 전용 연결부
+- `storyboard/providers.py`: Ollama / OpenAI / Claude / LM Studio의 서버 전용 연결부
 - `storyboard/library.py`: SQLite 기반 불변 사본 저장·조회·휴지통·복원 및 변환 결과 보관
 - `storyboard/conversion.py`: 선택 컷의 최대 15초 계획, 입력 가이드 기반 변환 및 대사·클립 참조 검증
 - 시간 기준 분할은 source offset/continuation과 전역 시간 범위를 저장하며 대사는 한 구간만
@@ -16,10 +18,20 @@
   가져오며 대사 manifest를 함께 보관합니다. 새로운 외부 API나 저장 데이터 마이그레이션은 없습니다.
 - `storyboard/clip_planning.py`: 분할 컷의 경계 참조, 원문 순서를 보존하는 대사 배치,
   글자 수 기반 시간 추정과 사용자가 선택한 speech 모드의 사본 재타이밍.
+  WebUI 기본 auto 모드는 컷 끝·장면·선택 공백을 보존하고 전체 구간을 함께 최적화해
+  짧은 꼬리 클립과 불필요한 분할을 줄입니다. 긴 컷은 가능한 대사 경계 근처에서 이어갑니다.
+  추천 후 clip_durations로 클립별 길이를 조정하면 서버가 한도를 검증하고 컷별 배정 시간을
+  비례 조정합니다. 소수 초 반올림은 연기 시간에 반영하며 정지 화면 패딩을 추가하지 않습니다.
+  원본 시각 범위와 재생 시간을 구분해 계획·프롬프트·TXT에 기록합니다. 원본은 수정하지 않으며
+  기존 API에서 split_mode를 생략한 동작과 shots/fixed/speech 모드는 유지합니다.
   부분 컷의 source에서 start_state/end_state를 제거하고 entry/exit_boundary_id를 사용합니다.
   원본 endpoint는 boundary의 original_*_context에만 전달합니다. AI의 구조화 boundaries.state를
   검증하고 양쪽 프롬프트에 동일하게 삽입합니다. 실제 가이드 충돌 warnings는 차단하고,
   추정/검토 notes는 화면·TXT에 보존합니다. 경고 문자열을 키워드로 필터링하지 않습니다.
+- `storyboard/clip_flow.py`: 인접 클립의 실제 편집/동일 컷 연결/장면 전환을 구분한 handoff 계약.
+  변환 AI가 반환한 같은 영어 bridge를 양쪽 프롬프트에 삽입하고 대사별 speech_cues로 발화 계기를 명시합니다.
+  auto 모드에서만 pacing_weight로 대사 예상 시간과 여유를 확보한 뒤 잔여 시간을 배분하며 사용자가 정한 클립 길이·개수는 유지합니다.
+  시간 부족은 원본과 기존 배정을 유지한 검토 메모로 남기며 실제 음성이나 영상의 품질을 보장하지 않습니다.
 - `storyboard/references.py`: 불변 이미지 BLOB, 보드별 참조 설정, 이미지 조회와 변환별 ZIP
 - 웹 API 설정: `/api/config`는 키 등록 상태와 공개 설정만 반환하고 `/api/settings`는
   검증된 변경을 `.local-secrets/ui-settings.json`에 원자적으로 저장합니다. 키는 로컬 평문
@@ -64,6 +76,8 @@ API별 출력 예산 16,000토큰은 유지합니다. SSE는 실제 content 2MB�
 루프는 없으며, 연결 경고는 생성 실패와 구분합니다.
 
 ## 제공자 연결
+
+LM Studio는 2026-10-17에 [공식 호환 API](https://lmstudio.ai/docs/developer/openai-compat), [구조화 출력](https://lmstudio.ai/docs/developer/openai-compat/structured-output), [인증](https://lmstudio.ai/docs/developer/core/authentication)을 확인했습니다. 별도 lmstudio provider와 LMSTUDIO_* 설정을 사용하며 기존 OpenAI 어댑터의 Chat Completions 조립·응답 검증을 공유합니다. loopback Base URL, 기본 포트 1234, 선택 토큰을 지원합니다. OpenAI 자격 증명을 가져오지 않으며 설정 저장·공개 config·출처·생성·검수·변환·보관에 같은 provider ID를 사용합니다. 실제 모델의 구조화 출력 지원은 모델에 따라 다르며 자동 fallback은 하지 않습니다.
 
 2026-10-10에 다음 공식 문서를 확인했습니다.
 

@@ -133,6 +133,10 @@ main { padding-top: 24px; }
 .conversion-shortcuts { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 8px 0 12px; }
 .conversion-shortcuts .quiet { text-align: left; padding: 5px 0; text-decoration: underline; text-underline-offset: 3px; }
 #conversion-plan { width: 100%; }
+.clip-duration-control { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 8px; }
+.clip-duration-control input { width: 88px; flex: 0 0 88px; height: 44px; min-height: 44px; font-size: 17px; font-variant-numeric: tabular-nums; }
+.plan-total { grid-column: 1 / -1; }
+#conversion-plan-result .plan-pacing-warning { color: #9b4d10; font-weight: 600; }
 #conversion-plan-result { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0 0; }
 #conversion-plan-result:empty { display: none; }
 #conversion-plan-result .library-card { padding: 14px; border-radius: 6px; background: #f6f8fb; border-color: var(--line); font-size: 12px; }

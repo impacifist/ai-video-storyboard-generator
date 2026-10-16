@@ -20,6 +20,7 @@ def scope_rules():
 
 def assembly_rules():
     return ((ROOT / "dialogue-assembly.md").read_text(encoding="utf-8") + "\n\n" +
+            (ROOT / "clip-flow.md").read_text(encoding="utf-8") + "\n\n" +
             (ROOT / "anime-direction.md").read_text(encoding="utf-8") + "\n\n" +
             (ROOT / "action-causality.md").read_text(encoding="utf-8") + "\n\n" +
             (ROOT / "camera-techniques.ko.md").read_text(encoding="utf-8"))

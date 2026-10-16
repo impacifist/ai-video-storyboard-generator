@@ -6,7 +6,7 @@ import json
 import re
 from decimal import Decimal, ROUND_CEILING
 
-from . import clip_planning, guides, prompt_renderer, providers, references
+from . import clip_flow, clip_planning, guides, prompt_renderer, providers, references
 from .engine import validate_document
 from .schema import ValidationError
 
@@ -30,8 +30,11 @@ def compile_directions(document, layout, profile, assets, provider, model, syste
             prompt_renderer.validate(draft, schema, "AI 응답")
             if profile and profile["id"].startswith("minimax"):
                 draft = prompt_renderer.h3_reference_labels(draft, assets)
-            result, manifest = prompt_renderer.assemble(document, layout, draft, profile, assets)
+            candidate = clip_flow.refine(copy.deepcopy(layout), draft)
+            result, manifest = prompt_renderer.assemble(document, candidate, draft, profile, assets)
             result["warnings"] = list(dict.fromkeys(warnings + result["warnings"]))
+            layout.clear()
+            layout.update(candidate)
             return draft, result, manifest, {"attempts": attempt + 1, "repaired": bool(attempt), "issues": errors}
         except providers.OutputValidationError as error:
             draft = error.output
@@ -69,8 +72,12 @@ def plan(document, selected, limit=15, split_mode="shots"):
     if (not isinstance(selected, list) or not selected or any(not isinstance(i, str) for i in selected)
             or len(set(selected)) != len(selected) or any(i not in ids for i in selected)):
         raise ValidationError("변환할 컷을 하나 이상 올바르게 선택해주세요.")
-    if split_mode not in ("shots", "fixed", "speech"):
+    if split_mode not in ("shots", "fixed", "speech", "auto"):
         raise ValidationError("지원하는 클립 분할 방식을 선택해주세요.")
+    if split_mode == "auto":
+        layout = clip_planning.automatic(document, selected, limit)
+        layout["source_sha256"] = hashlib.sha256(json.dumps(document, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        return clip_flow.annotate(document, layout)
     if split_mode == "fixed":
         return fixed_plan(document, selected, limit)
     if split_mode == "speech":
@@ -96,8 +103,8 @@ def plan(document, selected, limit=15, split_mode="shots"):
         elapsed += duration
         current["duration"] = float(elapsed)
         previous = index
-    return clip_planning.decorate(document, {"max_seconds": limit, "split_mode": "shots", "clips": clips,
-            "source_sha256": hashlib.sha256(json.dumps(document, sort_keys=True, ensure_ascii=False).encode()).hexdigest()})
+    return clip_flow.annotate(document, clip_planning.decorate(document, {"max_seconds": limit, "split_mode": "shots", "clips": clips,
+            "source_sha256": hashlib.sha256(json.dumps(document, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}))
 
 
 def fixed_plan(document, selected, limit):
@@ -133,8 +140,8 @@ def fixed_plan(document, selected, limit):
                 current["scene_id"] = "mixed"
             offset += amount
             previous = index
-    return clip_planning.decorate(document, {"max_seconds": limit, "split_mode": "fixed", "clips": clips,
-            "source_sha256": hashlib.sha256(json.dumps(document, sort_keys=True, ensure_ascii=False).encode()).hexdigest()})
+    return clip_flow.annotate(document, clip_planning.decorate(document, {"max_seconds": limit, "split_mode": "fixed", "clips": clips,
+            "source_sha256": hashlib.sha256(json.dumps(document, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}))
 
 
 def preflight(document, payload):
@@ -145,6 +152,11 @@ def preflight(document, payload):
             raise ValidationError("공식 가이드의 클립 최대 길이는 정수 4~15초로 설정해주세요.")
         limit = int(limit)
     layout = plan(document, payload.get("selected"), limit, payload.get("split_mode", "shots"))
+    if layout["split_mode"] == "auto":
+        clip_planning.set_lengths(document, layout, payload.get("clip_durations", {}),
+                                  4 if selected_guide else 1, bool(selected_guide))
+    elif payload.get("clip_durations"):
+        raise ValidationError("클립별 길이 조정은 자동 추천 방식에서 사용해주세요.")
     assets = references.manifest(payload.get("id"), payload.get("references", []), selected_guide) if selected_guide else []
     if not selected_guide and payload.get("references"):
         raise ValidationError("이미지 사용 여부에 맞는 가이드를 선택해주세요.")
@@ -156,7 +168,7 @@ def preflight(document, payload):
                 clip["content_duration"] = content_duration
                 layout["notes"].append(f"{clip['id']}: 원본 구간 {content_duration:g}초 → 생성 클립 {clip['duration']}초. "
                                        "남는 시간은 마지막 화면 유지에 사용하며 원본 컷·대사 시간은 유지합니다.")
-    return layout, selected_guide, assets
+    return clip_flow.annotate(document, layout), selected_guide, assets
 
 
 def compile_prompts(document, payload):
@@ -170,7 +182,7 @@ def compile_prompts(document, payload):
             raise ValidationError("대상 모델 이름, 가이드 출처, 가이드 본문을 입력해주세요.")
         fields[key] = value.strip()
     provider, model = payload.get("provider"), payload.get("model", "")
-    if provider not in ("openai", "claude", "ollama"):
+    if provider not in ("openai", "claude", "ollama", "lmstudio"):
         raise ValidationError("프롬프트 변환에는 실제 AI 제공자를 선택해주세요.")
     if not isinstance(model, str) or not model.strip() or len(model) > 200:
         raise ValidationError("변환에 사용할 AI 모델 ID를 입력해주세요.")
@@ -187,6 +199,16 @@ def compile_prompts(document, payload):
         "the reason in warnings instead of claiming compliance.")
     system_prompt = (selected_guide["system_prompt"] if selected_guide else
                      common_system + "\n" + guides.scope_rules() + "\n" + guides.assembly_rules())
+    if layout.get("timing_adjusted"):
+        system_prompt += ("\nAPPROVED CONVERSION TIMING: The user selected content-aware timing and may edit clip lengths. "
+                          "Clip durations are the approved fixed budgets; preview shot.start/end values are an initial allocation. "
+                          "The application may refine within-clip shot allocations using pacing_weight; never change clip lengths. "
+                          "Source durations, source offsets and timeline_start/end describe original content, not playback timing. "
+                          "Preserve every action and original dialogue; stage them naturally within the assigned interval. "
+                          "Do not force a 15-second duration, replay an opening, pad with blank footage, or insert a frozen "
+                          "final frame. Use purposeful acting and existing reactions throughout the shot. "
+                          "Speech estimates are unmeasured heuristics: put pacing concerns in notes, never force fast delivery "
+                          "or invent events or dialogue to fill time. A changed total length is explicitly authorized.")
     if any(a["role"] == "environment" for a in assets):
         system_prompt += ("\nBACKGROUND REFERENCES: An environment reference has role=environment and character_id=''. "
                           "It defines a location, never a character or Subject. Images are not visually analyzed here; "
@@ -248,10 +270,11 @@ def compile_prompts(document, payload):
             "guide_sha256": selected_guide["sha256"] if selected_guide else None,
             "guide_checked_at": selected_guide["checked_at"] if selected_guide else None,
             "system_prompt": system_prompt, "scope": scope,
-            "assembly_version": 5, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
+            "assembly_version": 6, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
             "english_reference_notes": draft["reference_notes"],
             "render_labels": prompt_renderer.render_labels(document),
             "validation_report": validation_report,
             "boundary_states": draft["boundaries"],
+            "handoff_bridges": draft["handoffs"],
             "status": "needs_review",
             "review_note": "길이·클립 순서·대사 보존을 검사했습니다. 의미와 가이드 전체 준수 여부는 사용자 검토가 필요합니다."}

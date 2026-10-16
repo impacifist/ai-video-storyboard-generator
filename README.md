@@ -4,15 +4,15 @@ English · [한국어](README.ko.md)
 
 A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
 
-**v0.4.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.5.0-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.4.0-beta) · [Release notes](docs/releases/v0.4.0-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.0-beta) · [Release notes](docs/releases/v0.5.0-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
-This release adds background references, 3–60 shots with duration-based suggestions, outline-first generation for longer storyboards, and richer 2D composition and causal-continuity guidance. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) remain available; a separate camera prompt is optional.
+This release adds editable clip-length suggestions, automatic within-clip pacing, paired continuity instructions and speech-onset cues, plus LM Studio support. Background references, 3–60 shots and outline-first generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included; a separate camera prompt is optional.
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
 
@@ -30,10 +30,10 @@ No additional Python packages are required to run the app. The template demo wor
 
 ## Workflow
 
-1. Open API settings and configure OpenAI, an OpenAI-compatible endpoint, Claude, or Ollama. Enter a model ID available through your provider. Saving settings does not call the model.
+1. Open API settings and configure OpenAI, an OpenAI-compatible endpoint, Claude, Ollama, or LM Studio. Enter a model ID available through your provider. Saving settings does not call the model.
 2. Add or remove character personas (1–5), then enter their relationships, location, situation, and story direction. Choose 3–60 shots for a 10–180-second storyboard; a duration-based suggestion helps with pacing. For 13+ shots, AI generation first plans the full arc, then expands batches of up to 6 shots with prior-shot context and locked anchors. This uses more API calls and costs more; all batches must validate before returning the completed storyboard. Each call retains a 16,000-token budget. Generation and regeneration failures never return a partial storyboard as complete.
 3. Use Manage to search, reopen, preview, trash, or restore saved storyboards.
-4. Open Convert, select shots, choose Seedance 2.0 or MiniMax H3, and review the clip plan and guide. By default, a 30-second timeline becomes two 15-second clips. Plans follow actual shot durations.
+4. Open Convert, select shots, and choose Seedance 2.0 or MiniMax H3. Click **Suggest clip lengths**, then edit the seconds on any clip before conversion. The default plans at shot boundaries, estimates dialogue time and balances clips without forcing each to 15 seconds. Total playback time may change; the saved storyboard stays intact. Fixed 15-second windows remain under **Advanced splitting**.
 5. Optionally attach multiple character and background reference images, set their roles, and arrange attachment order. Generate prompts and download TXT, JSON, or a ZIP with reference images.
 
 The interface supports English (default), Korean, and Japanese. The globe menu saves your language choice across browser sessions. Source dialogue and user content retain their original language.
@@ -60,7 +60,7 @@ To reproduce this example, save the [sample JSON](examples/before-the-rain-stops
 
 ### Connect your preferred AI
 
-Configure providers from the browser. OpenAI-compatible endpoints support a custom base URL, API mode, and JSON output mode. Claude and Ollama have their own settings; configure only the provider you plan to use.
+Configure providers from the browser. OpenAI-compatible endpoints support a custom base URL, API mode, and JSON output mode. Claude, Ollama and LM Studio have their own settings; configure only the provider you plan to use.
 
 ![English API settings dialog showing OpenAI-compatible base URL, API mode, JSON output options, and an empty API key field](docs/screenshots/api-settings-en.png)
 
@@ -69,6 +69,8 @@ Configure providers from the browser. OpenAI-compatible endpoints support a cust
 Configure credentials in the web UI, or copy `.env.example` to `.env` and fill in only the providers you use. Settings precedence is process environment, web settings, then `.env`.
 
 OpenAI-compatible services can use a custom base URL, Chat Completions or Responses, and the output mode supported by their endpoint. Compatibility depends on the service and model; not every endpoint supports every mode.
+
+For **LM Studio**, load a model and start the server in its Developer tab, then choose **LM Studio** in API settings and enter the server's model ID. The default local Base URL is `http://127.0.0.1:1234/v1`. This adapter uses Chat Completions and JSON Schema by default; JSON mode and prompt JSON are optional. An API key is only needed when LM Studio authentication is enabled. LM Studio settings are independent of OpenAI credentials, and the adapter accepts only loopback server URLs. See the official [compatibility](https://lmstudio.ai/docs/developer/openai-compat), [structured output](https://lmstudio.ai/docs/developer/openai-compat/structured-output), and [authentication](https://lmstudio.ai/docs/developer/core/authentication) documentation. Actual output quality and schema support depend on the loaded model.
 
 API keys are stored **unencrypted on your computer** in `.local-secrets/ui-settings.json` when saved through the UI. They are excluded from Git and exports. Keep the project folder private. The server listens on loopback and is intended for personal local use; it has no multi-user authentication. Do not expose it through a public proxy.
 
@@ -83,6 +85,8 @@ Generation, revision, review, and conversion send the relevant text to your sele
 - Reference mode supports up to nine character and background PNG/JPEG/WebP images in total, at most 5 MB each. Attach them to the video service in the exported manifest order.
 - Background references have their own upload control in conversion. Add an overview or alternate views of the same location and describe its seating, doors, windows, aisles and character positions. Each clip receives English instructions to preserve the matching location's geometry across camera angles. Images are not visually analyzed by the conversion AI; attach them to the video service along with character references. This guides layout consistency but does not guarantee the video model's output.
 - Optional dialogue timing assistance estimates speaking time and may extend the planned duration without modifying the source storyboard. It is not measured voice timing.
+- Conversion now gives each spoken line an action/response onset cue and inserts a shared narrative/audio handoff on both sides of adjacent clips. Automatic mode can redistribute shot time within your chosen clip lengths using performance preferences and estimated speech floors. Fixed and shot-preserving modes retain their timing. Complete lines are assigned to the earliest fitting part instead of delaying an entire exchange. This uses the existing conversion call, preserves original dialogue and does not change your video workflow or motion-context timing. Actual rendered continuity still requires review.
+- Automatic clip lengths use the original shot duration or estimated speech plus breathing room, whichever is longer. They preserve scenes and gaps in selected shots, balance whole-shot groups, and continue oversized shots across clips with dialogue assigned once. Manual seconds retime only the conversion plan and are reflected in the final prompt and TXT export. Automatic mode distributes fractional rounding over the performance rather than inserting a frozen final-frame hold. A single utterance longer than the model limit still needs editorial review; it is never shortened or duplicated to pretend it fits.
 - Invalid output is not saved. Older conversions made before the English output policy must be converted again for TXT/ZIP export; their JSON remains accessible.
 
 Review prompts before using them. Structural checks cannot guarantee the model's interpretation, natural speech timing, continuity in generated footage, or complete semantic compliance with vendor guides.

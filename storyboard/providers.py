@@ -17,10 +17,19 @@ MAX_RESPONSE = 2_000_000
 MAX_STREAM_BYTES = 32_000_000
 SETTING_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_MODEL", "CLAUDE_MODEL",
                   "OLLAMA_MODEL", "OLLAMA_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_MODE",
-                  "OPENAI_OUTPUT_MODE"}
-KEY_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY"}
+                  "OPENAI_OUTPUT_MODE", "OPENAI_CHAT_STREAM", "LMSTUDIO_BASE_URL", "LMSTUDIO_MODEL", "LMSTUDIO_API_KEY",
+                  "LMSTUDIO_OUTPUT_MODE"}
+KEY_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "LMSTUDIO_API_KEY"}
 SETTINGS_LOCK = threading.Lock()
 DEFAULT_OPENAI_BASE = "https://api.openai.com/v1"
+DEFAULT_LMSTUDIO_BASE = "http://127.0.0.1:1234/v1"
+
+
+def lmstudio_url(value):
+    base = openai_url(value.strip() or DEFAULT_LMSTUDIO_BASE)
+    if urlsplit(base).hostname not in ("localhost", "127.0.0.1", "::1"):
+        raise ValidationError("LM Studio 주소는 로컬 서버의 Base URL을 입력해주세요.")
+    return base
 
 
 class OutputValidationError(ValidationError):
@@ -91,7 +100,7 @@ def save_settings(payload):
         raise ValidationError("허용되지 않은 설정 항목입니다.")
     changes = {}
     for key, value in values.items():
-        limit = 4096 if key in KEY_FIELDS else 2048 if key == "OPENAI_BASE_URL" else 200
+        limit = 4096 if key in KEY_FIELDS else 2048 if key in ("OPENAI_BASE_URL", "LMSTUDIO_BASE_URL") else 200
         if not isinstance(value, str) or len(value) > limit:
             raise ValidationError("설정 값의 형식 또는 길이가 잘못되었습니다.")
         value = value.strip()
@@ -108,9 +117,11 @@ def save_settings(payload):
             value = ollama_url(value)
         if key == "OPENAI_BASE_URL":
             value = openai_url(value)
+        if key == "LMSTUDIO_BASE_URL":
+            value = lmstudio_url(value)
         if key == "OPENAI_API_MODE" and value not in ("responses", "chat_completions"):
             raise ValidationError("OpenAI API 방식을 선택해주세요.")
-        if key == "OPENAI_OUTPUT_MODE" and value not in ("json_schema", "json_object", "prompt"):
+        if key in ("OPENAI_OUTPUT_MODE", "LMSTUDIO_OUTPUT_MODE") and value not in ("json_schema", "json_object", "prompt"):
             raise ValidationError("JSON 출력 방식을 선택해주세요.")
         changes[key] = value
     if set(clear) & set(changes):
@@ -123,6 +134,12 @@ def save_settings(payload):
         old_base = openai_url(current.get("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE))
         if (urlsplit(old_base).netloc.lower() != urlsplit(changes["OPENAI_BASE_URL"]).netloc.lower()
                 and current.get("OPENAI_API_KEY") and "OPENAI_API_KEY" not in changes):
+            raise ValidationError("API 대상 주소를 변경할 때는 해당 서비스의 키를 새로 입력하거나 기존 키를 삭제해주세요.")
+    if "LMSTUDIO_BASE_URL" in changes:
+        current = load_settings()
+        old_base = lmstudio_url(current.get("LMSTUDIO_BASE_URL", DEFAULT_LMSTUDIO_BASE))
+        if (urlsplit(old_base).netloc.lower() != urlsplit(changes["LMSTUDIO_BASE_URL"]).netloc.lower()
+                and current.get("LMSTUDIO_API_KEY") and "LMSTUDIO_API_KEY" not in changes):
             raise ValidationError("API 대상 주소를 변경할 때는 해당 서비스의 키를 새로 입력하거나 기존 키를 삭제해주세요.")
     with SETTINGS_LOCK:
         saved = local_settings()
@@ -170,16 +187,21 @@ def load_settings():
 
 def configuration():
     settings = load_settings()
+    lm_base = lmstudio_url(settings.get("LMSTUDIO_BASE_URL", DEFAULT_LMSTUDIO_BASE))
     base, mode, output = openai_options(settings)
     endpoint = base + ("/responses" if mode == "responses" else "/chat/completions")
     return {"ollama_base_url": ollama_url(settings.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")),
             "openai_base_url": base, "openai_api_mode": mode, "openai_output_mode": output,
+            "lmstudio_base_url": lm_base, "lmstudio_output_mode": settings.get("LMSTUDIO_OUTPUT_MODE", "json_schema"),
             "environment_fields": sorted(SETTING_FIELDS & set(os.environ)), "providers": [
         {"id": "demo", "name": "예시 모드", "configured": True, "model": "",
          "destination": "전송 없음 · 고정 템플릿 체험"},
         {"id": "ollama", "name": "Ollama", "configured": True,
          "model": settings.get("OLLAMA_MODEL", ""),
          "destination": "로컬 Ollama · 클라우드 모델 사용 시 외부 전송 가능"},
+        {"id": "lmstudio", "name": "LM Studio", "configured": True,
+         "key_configured": bool(settings.get("LMSTUDIO_API_KEY")), "model": settings.get("LMSTUDIO_MODEL", ""),
+         "destination": f"{lm_base}/chat/completions · LM Studio"},
         {"id": "openai", "name": "OpenAI", "configured": bool(settings.get("OPENAI_API_KEY")),
          "model": settings.get("OPENAI_MODEL", ""),
          "destination": f"{endpoint} · 입력과 콘티 전송 · API 요금 발생"},
@@ -270,7 +292,7 @@ def request_json(url, payload, headers, timeout=180):
 
 
 def generate_json(provider, model, system, user, schema):
-    if provider not in ("ollama", "openai", "claude"):
+    if provider not in ("ollama", "openai", "claude", "lmstudio"):
         raise ValidationError("지원하지 않는 AI 제공자입니다.")
     if not isinstance(model, str) or not model.strip() or len(model) > 200:
         raise ValidationError("사용할 모델 ID를 입력해주세요.")
@@ -287,15 +309,21 @@ def generate_json(provider, model, system, user, schema):
         if result.get("done") is not True or result.get("done_reason") == "length":
             raise ProviderError("Ollama 응답이 완료되지 않았습니다. 컷 수를 줄여주세요.")
         content = result.get("message", {}).get("content")
-    elif provider == "openai":
-        key = settings.get("OPENAI_API_KEY")
-        if not key:
+    elif provider in ("openai", "lmstudio"):
+        key = settings.get("LMSTUDIO_API_KEY" if provider == "lmstudio" else "OPENAI_API_KEY")
+        if not key and provider == "openai":
             raise ValidationError("API 설정에서 OpenAI 키를 등록해주세요.")
-        base, mode, output = openai_options(settings)
-        headers = {"Authorization": f"Bearer {key}"}
+        if provider == "lmstudio":
+            base = lmstudio_url(settings.get("LMSTUDIO_BASE_URL", DEFAULT_LMSTUDIO_BASE))
+            mode, output = "chat_completions", settings.get("LMSTUDIO_OUTPUT_MODE", "json_schema")
+            if output not in ("json_schema", "json_object", "prompt"):
+                raise ValidationError("JSON 출력 방식을 선택해주세요.")
+        else:
+            base, mode, output = openai_options(settings)
+        headers = {"Authorization": f"Bearer {key}"} if key else {}
         if mode == "chat_completions":
-            # Crowbot supports SSE; receiving chunks avoids waiting for a full long response.
-            stream = urlsplit(base).hostname == "api.crowbot.sh"
+            # Streaming is an explicit capability choice, independent of service hostname.
+            stream = provider == "openai" and settings.get("OPENAI_CHAT_STREAM", "false").lower() == "true"
             payload = {"model": model, "stream": stream, "messages": [
                 {"role": "system", "content": instruction}, {"role": "user", "content": user}]}
             token_field = "max_completion_tokens" if urlsplit(base).hostname == "api.openai.com" else "max_tokens"

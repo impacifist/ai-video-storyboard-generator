@@ -128,6 +128,46 @@ def main():
             page.locator("#ai-review").click()
             expect(page.locator("#ai-result")).to_contain_text("모의 호환 API 검수")
             assert upstream.call_count == 2
+            # Dedicated LM Studio settings do not reuse cloud credentials.
+            page.on("dialog", lambda dialog: dialog.accept())
+            page.locator("#settings-open").click()
+            page.locator("#settings-provider").select_option("lmstudio")
+            expect(page.locator("#settings-lmstudio-url")).to_have_value("http://127.0.0.1:1234/v1")
+            page.locator("#settings-lmstudio-url").fill("")
+            page.locator("#settings-lmstudio-model").fill("local-model")
+            page.locator("#settings-save").click()
+            expect(page.locator("#settings-dialog")).not_to_be_visible()
+            assert providers.load_settings()["OPENAI_API_KEY"] == "fake-gateway-key"
+            assert providers.load_settings()["OPENAI_BASE_URL"] == "https://gateway.example/v1"
+            assert "LMSTUDIO_API_KEY" not in providers.load_settings()
+
+            def local_response(url, payload, headers):
+                import json
+                assert url == "http://127.0.0.1:1234/v1/chat/completions"
+                assert headers == {}
+                assert payload["response_format"]["type"] == "json_schema"
+                source = json.loads(payload["messages"][-1]["content"])
+                result = engine.demo_story(source["brief"]) if "revision_request" in source else {"summary": "LM Studio 모의 검수", "findings": []}
+                return {"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(result)}}]}
+
+            upstream.side_effect = local_response
+            page.locator("#provider").select_option("lmstudio")
+            expect(page.locator("#model")).to_have_value("local-model")
+            page.locator("#consent").check()
+            page.locator("#generate").click()
+            expect(page.locator("#source")).to_have_text("LMSTUDIO")
+            page.locator("#ai-review").click()
+            expect(page.locator("#ai-result")).to_contain_text("LM Studio 모의 검수")
+            assert upstream.call_count == 4
+            page.reload()
+            page.locator("#provider").select_option("lmstudio")
+            expect(page.locator("#model")).to_have_value("local-model")
+            page.locator("#settings-open").click()
+            expect(page.locator("#settings-panel-lmstudio")).to_be_visible()
+            for language in ("ko", "en", "ja"):
+                page.evaluate("lang => I18n.select(lang)", language)
+                expect(page.locator("#settings-save")).to_contain_text("LM Studio")
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             assert not errors, errors
             browser.close()
             print("PASS: provider-specific settings, key preservation/delete, generic compatible API, mocked chat generation/review, URL checks, redaction, mobile. No real API calls.")

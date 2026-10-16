@@ -58,7 +58,7 @@ def validate_document(document):
         raise ValidationError("지원하지 않는 프로젝트 버전입니다.")
     validate_brief(document["brief"])
     validate_story(document["story"], document["brief"])
-    if document["provenance"]["provider"] not in ("demo", "ollama", "openai", "claude"):
+    if document["provenance"]["provider"] not in ("demo", "ollama", "openai", "claude", "lmstudio"):
         raise ValidationError("프로젝트 생성 출처가 올바르지 않습니다.")
 
 
@@ -101,7 +101,7 @@ def generate(payload):
     brief = payload.get("brief")
     validate_brief(brief)
     provider, model = payload.get("provider"), payload.get("model", "")
-    if provider not in ("demo", "ollama", "openai", "claude"):
+    if provider not in ("demo", "ollama", "openai", "claude", "lmstudio"):
         raise ValidationError("AI 제공자를 선택해주세요.")
     revision = payload.get("revision", "")
     if not isinstance(revision, str) or len(revision) > 12000:

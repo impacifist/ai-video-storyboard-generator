@@ -59,7 +59,7 @@ class ContractTests(unittest.TestCase):
             validate_brief(value)
 
     def test_direction_contract_reaches_every_generation_provider_with_original_schema(self):
-        for provider in ("openai", "claude", "ollama"):
+        for provider in ("openai", "claude", "ollama", "lmstudio"):
             with self.subTest(provider=provider):
                 source = brief()
                 before = copy.deepcopy(source)

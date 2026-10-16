@@ -17,17 +17,26 @@ const settingFields = {
   OPENAI_API_KEY: "#settings-openai-key", ANTHROPIC_API_KEY: "#settings-claude-key",
   OPENAI_BASE_URL: "#settings-openai-url", OPENAI_API_MODE: "#settings-openai-mode",
   OPENAI_OUTPUT_MODE: "#settings-openai-output",
+  LMSTUDIO_BASE_URL: "#settings-lmstudio-url", LMSTUDIO_MODEL: "#settings-lmstudio-model",
+  LMSTUDIO_API_KEY: "#settings-lmstudio-key", LMSTUDIO_OUTPUT_MODE: "#settings-lmstudio-output",
 };
 const providerSettingKeys = {
   ollama: ["OLLAMA_BASE_URL", "OLLAMA_MODEL"],
   openai: ["OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_MODE", "OPENAI_OUTPUT_MODE"],
   claude: ["ANTHROPIC_API_KEY", "CLAUDE_MODEL"],
+  lmstudio: ["LMSTUDIO_BASE_URL", "LMSTUDIO_MODEL", "LMSTUDIO_API_KEY", "LMSTUDIO_OUTPUT_MODE"],
 };
+const providerNames = {openai: "OpenAI", claude: "Claude", ollama: "Ollama", lmstudio: "LM Studio"};
+
+function settingsKeyStatus(provider) {
+  if (provider?.id === "lmstudio") return provider.key_configured ? tr("● API 키 등록됨 · 키 값은 표시하지 않습니다.") : tr("인증을 사용하지 않으면 API 키 없이 연결합니다.");
+  return provider?.configured ? tr("● API 키 등록됨 · 키 값은 표시하지 않습니다.") : tr("○ API 키 미등록");
+}
 
 function showSettingsProvider() {
   const selected = $("#settings-provider").value;
-  for (const id of ["ollama", "openai", "claude"]) $(`#settings-panel-${id}`).hidden = selected !== id;
-  $("#settings-save").textContent = tr("{0} 설정 저장", {0: selected === "openai" ? "OpenAI" : selected === "claude" ? "Claude" : "Ollama"});
+  for (const id of Object.keys(providerSettingKeys)) $(`#settings-panel-${id}`).hidden = selected !== id;
+  $("#settings-save").textContent = tr("{0} 설정 저장", {0: providerNames[selected]});
   $("#settings-error").textContent = "";
 }
 
@@ -36,6 +45,7 @@ function settingsDisabled() {
   for (const [key, selector] of Object.entries(settingFields)) $(selector).disabled = busy || managed.has(key);
   $("#settings-openai-clear").disabled = busy || managed.has("OPENAI_API_KEY");
   $("#settings-claude-clear").disabled = busy || managed.has("ANTHROPIC_API_KEY");
+  $("#settings-lmstudio-clear").disabled = busy || managed.has("LMSTUDIO_API_KEY");
 }
 
 function applyConfig(value, defaults = false) {
@@ -60,13 +70,15 @@ async function openSettings() {
     $("#settings-openai-url").value = config.openai_base_url || "https://api.openai.com/v1";
     $("#settings-openai-mode").value = config.openai_api_mode || "responses";
     $("#settings-openai-output").value = config.openai_output_mode || "json_schema";
-    for (const id of ["ollama", "openai", "claude"]) {
+    $("#settings-lmstudio-url").value = config.lmstudio_base_url || "http://127.0.0.1:1234/v1";
+    $("#settings-lmstudio-output").value = config.lmstudio_output_mode || "json_schema";
+    for (const id of Object.keys(providerSettingKeys)) {
       const provider = providers.find((p) => p.id === id);
-      $(`#settings-${id}-model`).value = provider.model;
+      $(`#settings-${id}-model`).value = provider?.model || "";
       if (id !== "ollama") {
         $(`#settings-${id}-key`).value = "";
         $(`#settings-${id}-clear`).checked = false;
-        $(`#settings-${id}-status`).textContent = provider.configured ? tr("● API 키 등록됨 · 키 값은 표시하지 않습니다.") : tr("○ API 키 미등록");
+        $(`#settings-${id}-status`).textContent = settingsKeyStatus(provider);
       }
     }
     $("#settings-error").textContent = "";
@@ -93,6 +105,7 @@ async function saveSettings(event) {
   const clear_keys = [];
   if (selected === "openai" && $("#settings-openai-clear").checked && !$("#settings-openai-clear").disabled) clear_keys.push("OPENAI_API_KEY");
   if (selected === "claude" && $("#settings-claude-clear").checked && !$("#settings-claude-clear").disabled) clear_keys.push("ANTHROPIC_API_KEY");
+  if (selected === "lmstudio" && $("#settings-lmstudio-clear").checked && !$("#settings-lmstudio-clear").disabled) clear_keys.push("LMSTUDIO_API_KEY");
   setBusy(true);
   try {
     applyConfig(await api("/api/settings", {values, clear_keys}), true);
@@ -673,6 +686,7 @@ $("#settings-provider").addEventListener("change", showSettingsProvider);
 $("#settings-dialog").addEventListener("close", () => {
   $("#settings-openai-key").value = "";
   $("#settings-claude-key").value = "";
+  $("#settings-lmstudio-key").value = "";
 });
 api("/api/config").then((value) => applyConfig(value))
   .catch((error) => notice(tr("설정을 불러오지 못했습니다: {0}", {0: error.message}), true));
@@ -683,6 +697,7 @@ let conversionBoard = null;
 let conversionBoardId = null;
 let conversionResult = null;
 let visiblePlan = null;
+let clipLengths = {};
 let conversionEntries = [];
 
 async function switchStudio(view) {
@@ -807,6 +822,7 @@ function clearConversion() {
   conversionBoard = null; conversionBoardId = null; conversionResult = null;
   referenceItems = [];
   visiblePlan = null; conversionEntries = [];
+  clipLengths = {};
   $("#conversion-controls").hidden = true;
   $("#conversion-preview").hidden = true;
   $("#conversion-selection").textContent = "";
@@ -817,6 +833,7 @@ function clearConversion() {
 }
 
 function invalidateConversion() {
+  clipLengths = {};
   updateConversionSelection();
   $("#conversion-consent").checked = false;
   conversionResult = null;
@@ -836,14 +853,14 @@ function updateConversionAI() {
   $("#conversion-ai-model").value = provider?.model || "";
   $("#conversion-ai-note").textContent = provider ? tr("{0} · {1}", {0: provider.label || provider.id, 1: I18n.system(provider.destination || tr("API 설정의 연결 사용"))}) : tr("상단 API 설정에서 연결을 등록하세요.");
   $("#conversion-consent").checked = false;
-  if (!$("#conversion-ai-model").value) $(".conversion-advanced").open = true;
+  if (!$("#conversion-ai-model").value) $("#conversion-ai-model").closest("details").open = true;
 }
 
 function conversionPayload() {
   if (!conversionBoardId) throw new Error(tr("변환할 콘티를 선택해주세요."));
   return {id: conversionBoardId,
     selected: [...document.querySelectorAll("#conversion-shots input:checked")].map((node) => node.value),
-    limit: Number($("#clip-limit").value), split_mode: $("#split-mode").value, target_model: $("#target-model").value.trim(),
+    limit: Number($("#clip-limit").value), split_mode: $("#split-mode").value, clip_durations: clipLengths, target_model: $("#target-model").value.trim(),
     guide_source: $("#guide-source").value.trim(), guide: $("#conversion-guide").value.trim(),
     guide_id: $("#video-family").value === "custom" ? null : `${$("#video-family").value === "minimax" ? "minimax-h3" : "seedance-2"}-${$("#video-guide").value}`,
     references: $("#video-family").value !== "custom" && $("#video-guide").value === "reference" ? referenceItems : []};
@@ -853,6 +870,7 @@ function renderPlan(plan) {
   visiblePlan = plan;
   const container = $("#conversion-plan-result"); container.replaceChildren();
   container.append(el("h3", "", tr("{0}개 클립 · 각 {1}초 이내", {0: plan.clips.length, 1: plan.max_seconds})));
+  if (plan.split_mode === "auto") container.append(el("p", "helper plan-total", tr("원본 {0}초 → 영상 {1}초 · 길이 추천은 추정치입니다.", {0: plan.original_selected_duration, 1: Number(plan.clips.reduce((sum, c) => sum + c.duration, 0).toFixed(2))})));
   if (plan.split_mode === "speech") container.append(el("p", "helper", tr("대사 시간 확보: 원본 {0}초 → 계획 {1}초 · 추정치이며 원본은 유지됩니다.", {0: plan.original_selected_duration, 1: plan.clips.reduce((sum, c) => sum + c.duration, 0)})));
   if (plan.notes?.length) {
     const notes = el("details", "plan-notes"); notes.append(el("summary", "", tr("검토 메모 ({0})", {0: plan.notes.length})));
@@ -862,10 +880,28 @@ function renderPlan(plan) {
   for (const clip of plan.clips) {
     const card = el("article", "library-card");
     card.append(el("h4", "", tr("{0} · {1}초", {0: clip.id, 1: clip.duration})),
-      el("p", "", clip.shots.map((shot) => tr("{0}–{1}초 {2}", {0: shot.start, 1: shot.end, 2: shot.id})).join(" / ")));
+      el("p", "", plan.split_mode === "auto" ? clip.shots.map((shot) => shot.id).join(" · ") : clip.shots.map((shot) => tr("{0}–{1}초 {2}", {0: shot.start, 1: shot.end, 2: shot.id})).join(" / ")));
+    if (plan.split_mode === "auto") {
+      const label = el("label", "clip-duration-control", tr("클립 길이 · 초")), input = el("input");
+      input.type = "number"; input.min = $("#video-family").value === "custom" ? "1" : "4";
+      input.max = plan.max_seconds; input.step = $("#video-family").value === "custom" ? "0.1" : "1";
+      input.value = clip.duration; input.dataset.clipDuration = clip.id;
+      input.setAttribute("aria-label", tr("{0} 클립 길이 · 초", {0: clip.id}));
+      input.addEventListener("change", async () => {
+        clipLengths[clip.id] = input.value === "" ? null : Number(input.value);
+        $("#conversion-consent").checked = false; conversionResult = null;
+        await libraryAction(async () => renderPlan((await api("/api/conversion/plan", conversionPayload())).plan));
+        document.querySelector(`[data-clip-duration='${clip.id}']`)?.focus({preventScroll: true});
+      });
+      label.append(input); card.append(label);
+      card.append(el("p", "helper", tr("추천 {0}초 · {1}", {0: clip.recommended_duration, 1: tr(clip.break_reason === "continuation" ? "긴 컷의 동작 이어가기" : "컷 끝에서 연결")})));
+      const estimate = Number(clip.shots.reduce((sum, shot) => sum + shot.speech_estimate_seconds, 0).toFixed(1));
+      if (estimate) card.append(el("p", estimate > clip.duration ? "plan-pacing-warning" : "helper", tr("대사 예상 약 {0}초 · 실제 낭독으로 확인하세요.", {0: estimate})));
+    }
     const detail = el("details", "plan-detail"); detail.append(el("summary", "", tr("대사와 연결 확인")));
-    if (plan.split_mode === "fixed") {
-      card.append(el("p", "helper", tr("원본 {0}–{1}초", {0: clip.timeline_start, 1: clip.timeline_end})));
+    if (["fixed", "auto"].includes(plan.split_mode)) {
+      const range = el("p", "helper", tr("원본 {0}–{1}초", {0: clip.timeline_start, 1: clip.timeline_end}));
+      (plan.split_mode === "auto" ? detail : card).append(range);
       for (const shot of clip.shots) {
         if (shot.continues_from_previous || shot.continues_in_next) detail.append(el("p", "helper", tr("{0}: 원본 컷의 {1}–{2}초 부분 · 앞뒤 구간과 동작 연결", {0: shot.id, 1: shot.source_offset, 2: shot.source_end})));
         for (const line of shot.source.dialogue) detail.append(el("p", "", `${shot.id} · ${line.speaker}: ${line.text}`));
@@ -965,6 +1001,7 @@ for (const selector of ["#clip-limit", "#split-mode", "#target-model", "#guide-s
   $(selector).addEventListener("input", invalidateConversion);
 }
 $("#conversion-plan").addEventListener("click", () => libraryAction(async () => {
+  invalidateConversion();
   renderPlan((await api("/api/conversion/plan", conversionPayload())).plan);
 }));
 $("#conversion-auto-split").addEventListener("click", () => libraryAction(async () => {
@@ -986,12 +1023,13 @@ $("#conversion-run").addEventListener("click", () => libraryAction(async () => {
   const payload = conversionPayload();
   if (!payload.target_model || !payload.guide_source || !payload.guide) throw new Error(tr("대상 영상 모델과 가이드 출처·본문을 입력해주세요."));
   const selection = {provider: $("#conversion-ai-provider").value, model: $("#conversion-ai-model").value.trim()};
-  if (!selection.model) { $(".conversion-advanced").open = true; $("#conversion-ai-model").focus(); throw new Error(tr("변환 AI 모델 ID를 입력해주세요.")); }
+  if (!selection.model) { $("#conversion-ai-model").closest("details").open = true; $("#conversion-ai-model").focus(); throw new Error(tr("변환 AI 모델 ID를 입력해주세요.")); }
   if (!$("#conversion-consent").checked) throw new Error(tr("콘티와 가이드의 AI 전송에 동의해주세요."));
   renderPlan((await api("/api/conversion/plan", payload)).plan);
   notice(tr("선택한 AI에 콘티와 가이드를 전송해 변환하고 있습니다…"));
   const response = await api("/api/conversion/compile", {...payload, ...selection});
   conversionResult = response.result;
+  renderPlan(conversionResult.plan);
   renderConversion(conversionResult, "", true, response.id);
   $("#conversion-results").scrollIntoView({behavior: "smooth", block: "start"});
   notice(tr("프롬프트를 변환해 보관했습니다. 영상 제작 전에 의미와 가이드 준수 여부를 검토해주세요."));
@@ -1049,10 +1087,10 @@ window.addEventListener("languagechange", () => {
   $("#library-title").textContent = studioView === "convert" ? tr("변환할 콘티 선택") : tr("저장한 콘티");
   updateProvider(false);
   const selectedSettings = $("#settings-provider").value;
-  $("#settings-save").textContent = tr("{0} 설정 저장", {0: selectedSettings === "openai" ? "OpenAI" : selectedSettings === "claude" ? "Claude" : "Ollama"});
-  for (const id of ["openai", "claude"]) {
+  $("#settings-save").textContent = tr("{0} 설정 저장", {0: providerNames[selectedSettings]});
+  for (const id of ["openai", "claude", "lmstudio"]) {
     const provider = providers.find((item) => item.id === id);
-    $(`#settings-${id}-status`).textContent = provider?.configured ? tr("● API 키 등록됨 · 키 값은 표시하지 않습니다.") : tr("○ API 키 미등록");
+    $(`#settings-${id}-status`).textContent = settingsKeyStatus(provider);
   }
   if ($("#editor").open && editing !== null) $("#editor-title").textContent = tr("{0} · 컷 편집", {0: project.story.shots[editing].id});
   if (conversionBoard) {

@@ -35,7 +35,7 @@ class BatchGenerationTests(unittest.TestCase):
 
     def test_sixty_shots_use_full_plan_and_bounded_calls_on_all_providers(self):
         value, story = self.source()
-        for provider in ("openai", "claude", "ollama"):
+        for provider in ("openai", "claude", "ollama", "lmstudio"):
             calls = []
             with self.subTest(provider=provider), patch("storyboard.providers.generate_json", side_effect=self.upstream(story, calls)):
                 doc = engine.generate({"brief": value, "provider": provider, "model": "test"})

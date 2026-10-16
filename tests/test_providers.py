@@ -148,7 +148,7 @@ class AdapterTests(unittest.TestCase):
         text = json.dumps(config)
         self.assertNotIn("fake-openai-test-key", text)
         self.assertNotIn("fake-claude-test-key", text)
-        self.assertEqual(len(config["providers"]), 4)
+        self.assertEqual({p["id"] for p in config["providers"]}, {"demo", "ollama", "openai", "claude", "lmstudio"})
 
     def test_http_error_and_timeout_do_not_echo_upstream_secrets(self):
         for error in (HTTPError("url", 401, "secret-from-upstream", {}, None),

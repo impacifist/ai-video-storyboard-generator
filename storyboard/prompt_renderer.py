@@ -4,17 +4,18 @@ import json
 import re
 import unicodedata
 
-from .schema import CHAR_STATE, TEXT, ValidationError, array, obj, validate
+from .schema import CHAR_STATE, NUMBER, TEXT, ValidationError, array, obj, validate
 
 DIRECTION_STATE = obj(characters=array(CHAR_STATE),
                       props=array(obj(name=TEXT, english_name=TEXT, holder=TEXT, position=TEXT)))
 
 DIRECTOR_OUTPUT = obj(clips=array(obj(
     id=TEXT, context=TEXT, subject_definitions=TEXT, summary=TEXT, retention_analysis=TEXT,
-    shots=array(obj(id=TEXT, direction=TEXT,
+    shots=array(obj(id=TEXT, direction=TEXT, pacing_weight=NUMBER, speech_cues=array(TEXT),
                     camera=obj(size=TEXT, angle=TEXT, movement=TEXT, transition=TEXT, layout=TEXT),
                     dialogue_language=TEXT, deliveries=array(TEXT))),
     overall_soundscape=TEXT, non_diegetic_music=TEXT)), boundaries=array(obj(id=TEXT, state=DIRECTION_STATE)),
+    handoffs=array(obj(id=TEXT, bridge=TEXT, sound_bridge=TEXT)),
     reference_notes=array(obj(label=TEXT, note=TEXT)),
     warnings=array(TEXT), notes=array(TEXT))
 
@@ -51,6 +52,7 @@ def output_schema(document, layout):
     boundary = schema["properties"]["boundaries"]["items"]["properties"]
     ids = [c["id"] for c in document["brief"]["characters"]]
     boundary["id"]["enum"] = [b["id"] for b in layout.get("boundaries", [])] or ["unused"]
+    schema["properties"]["handoffs"]["items"]["properties"]["id"]["enum"] = [h["id"] for h in layout.get("handoffs", [])] or ["unused"]
     state = boundary["state"]["properties"]
     character = state["characters"]["items"]["properties"]
     character["character_id"]["enum"] = ids
@@ -164,6 +166,14 @@ def assemble(document, layout, draft, profile, assets):
     if [c["id"] for c in draft["clips"]] != [c["id"] for c in layout["clips"]]:
         raise ValidationError("변환 결과의 클립 수 또는 순서가 원본 계획과 다릅니다.")
     names = render_labels(document)
+    if [h["id"] for h in draft["handoffs"]] != [h["id"] for h in layout.get("handoffs", [])]:
+        raise ValidationError("handoffs: return every planned handoff once, in plan order")
+    for handoff in draft["handoffs"]:
+        for field in ("bridge", "sound_bridge"):
+            require_english(handoff[field], f"handoffs.{handoff['id']}.{field}")
+            if not handoff[field].strip() or re.search(r"</?d>|\(S\d+\)|\{[^{}]*\}", handoff[field]):
+                raise ValidationError("handoffs: nonempty English connection notes without dialogue syntax required")
+    bridges = {h["id"]: h for h in draft["handoffs"]}
     if [r["label"] for r in draft["reference_notes"]] != [a["label"] for a in assets]:
         raise ValidationError("reference_notes: return every reference label once, in manifest order")
     for index, reference in enumerate(draft["reference_notes"]):
@@ -211,6 +221,7 @@ def assemble(document, layout, draft, profile, assets):
                                                 "overall_soundscape", "non_diegetic_music")]
         fragments += [s["direction"] for s in generated["shots"]]
         fragments += [value for s in generated["shots"] for value in s["camera"].values()]
+        fragments += [value for h in draft["handoffs"] for value in (h["bridge"], h["sound_bridge"])]
         for field in ("context", "subject_definitions", "summary", "retention_analysis", "overall_soundscape", "non_diegetic_music"):
             require_english(generated[field], f"clips.{clip['id']}.{field}")
         for index, directed in enumerate(generated["shots"]):
@@ -220,9 +231,13 @@ def assemble(document, layout, draft, profile, assets):
                     raise ValidationError(f"clips.{clip['id']}.shots[{index}].camera.{field}: explicit camera instruction required")
             require_english(directed["direction"], f"clips.{clip['id']}.shots[{index}].direction")
             require_english(directed["dialogue_language"], f"clips.{clip['id']}.shots[{index}].dialogue_language")
-            fragments.extend(directed["deliveries"])
+            fragments.extend(directed["deliveries"] + directed["speech_cues"])
             for line_index, delivery in enumerate(directed["deliveries"]):
                 require_english(delivery, f"clips.{clip['id']}.shots[{index}].deliveries[{line_index}]")
+            for line_index, cue in enumerate(directed["speech_cues"]):
+                require_english(cue, f"clips.{clip['id']}.shots[{index}].speech_cues[{line_index}]")
+                if not cue.strip():
+                    raise ValidationError("speech_cues: one concrete English onset cue per assigned dialogue line required")
         # Explicit dialogue syntax is owned by this renderer, never the model.
         if any(re.search(r"</?d>|\(S\d+\)|\{[^{}]*\}", text) for text in fragments):
             raise ValidationError("AI 연출에 대사 문법이 포함되었습니다. 대사는 프로그램이 삽입해야 합니다.")
@@ -232,14 +247,30 @@ def assemble(document, layout, draft, profile, assets):
             if any(label not in allowed for label in used):
                 raise ValidationError("프롬프트의 이미지 번호와 첨부 목록이 일치하지 않습니다.")
         bodies, speakers = [generated["context"]], {}
+        incoming = next((h for h in layout.get("handoffs", []) if h["to_clip"] == clip["id"]), None)
+        outgoing = next((h for h in layout.get("handoffs", []) if h["from_clip"] == clip["id"]), None)
+        if incoming:
+            bridge = bridges[incoming["id"]]
+            bodies.append(f"Incoming connection {incoming['id']} ({incoming['kind']}): {bridge['bridge']}\n"
+                          f"Audio connection: {bridge['sound_bridge']}")
+            if incoming["kind"] != "scene_change":
+                bodies.append("The scene is already underway. Continue its conversational rhythm; do not restart "
+                              "the setup or force speech to begin simply because this clip starts. "
+                              "Let each assigned line follow its stated action or response cue.")
         for index, (directed, planned) in enumerate(zip(generated["shots"], clip["shots"]), 1):
-            if len(directed["deliveries"]) != len(planned["source"]["dialogue"]):
+            if (len(directed["deliveries"]) != len(planned["source"]["dialogue"])
+                    or len(directed["speech_cues"]) != len(planned["source"]["dialogue"])):
                 raise ValidationError(f"clips.{clip['id']}.shots[{index - 1}].deliveries: one English translation per assigned dialogue line required")
             if h3:
                 heading = f"[Shot {index}]" + (f" At {timestamp(planned['start'])}," if index > 1 else "")
             else:
                 heading = f"[Shot {index}] {planned['start']:g}–{planned['end']:g}s"
             body = [heading]
+            if layout.get("timing_adjusted"):
+                body.append("Timing: let the approved action, speech and reaction unfold as one natural beat. "
+                            "The shot heading locates the planned edit; do not turn the performance into "
+                            "a second-by-second checklist or wait for a clip boundary to speak. "
+                            "Preserve intentional silence and held compositions; add no filler pause or repeated action.")
             camera = cameras[planned["id"]]
             body.append(f"Camera: {camera['size']}; angle: {camera['angle']}; movement: {camera['movement']}.")
             body.append("Layout: " + directed["camera"]["layout"])
@@ -263,6 +294,7 @@ def assemble(document, layout, draft, profile, assets):
                 if not line["delivery"] and translated_delivery:
                     raise ValidationError(f"clips.{clip['id']}.{planned['id']}.deliveries: do not invent delivery instructions")
                 delivery = f" Delivery: {translated_delivery}." if translated_delivery else ""
+                body.append("Speech onset: " + directed["speech_cues"][line_index - 1])
                 if h3:
                     speech = f"(S{speakers[speaker]}) {attribution}.{delivery} <d>[{spoken_language}] {line['text']}</d>"
                 elif seedance:
@@ -286,6 +318,14 @@ def assemble(document, layout, draft, profile, assets):
                 ending = "After the final-frame hold: " if has_hold else "At the end of this source shot: "
                 body.append(ending + camera["transition"])
             bodies.append("\n".join(body))
+        if outgoing:
+            bridge = bridges[outgoing["id"]]
+            bodies.append(f"Outgoing connection {outgoing['id']} ({outgoing['kind']}): {bridge['bridge']}\n"
+                          f"Audio connection: {bridge['sound_bridge']}")
+            if outgoing["kind"] != "scene_change":
+                bodies.append("This is an intermediate generation segment, not a scene ending. "
+                              "Carry the approved performance into the next segment without an added fade, "
+                              "settling pose or silent countdown. Keep intentional pauses only where the story calls for them.")
         description = "\n\n".join(bodies)
         refs = []
         for item, translated in zip(assets, draft["reference_notes"]):
@@ -317,6 +357,13 @@ def assemble(document, layout, draft, profile, assets):
                 "Non-diegetic music: " + (generated["non_diegetic_music"] or "N/A")])
         rendered.append({"id": clip["id"], "prompt": prompt})
     english_notes = list(draft["notes"])
+    if layout.get("pacing_refined"):
+        english_notes.append("Within-clip shot allocations were refined around dialogue and performance cues. "
+                             "Clip lengths, source shot order and original dialogue are unchanged; review actual voice timing.")
+    if layout.get("timing_adjusted"):
+        english_notes.append(f"Conversion-only timing: source selection {layout['original_selected_duration']:g}s; "
+                             f"planned playback {sum(c['duration'] for c in layout['clips']):g}s. "
+                             "Original storyboard and dialogue are unchanged. Recommended speech timing is an estimate, not measured audio.")
     for clip in layout["clips"]:
         if "content_duration" in clip:
             english_notes.append(f"{clip['id']}: source content {clip['content_duration']:g}s; generated duration "

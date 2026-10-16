@@ -58,22 +58,23 @@ class ChatStreamTests(unittest.TestCase):
         with patch.object(providers, 'MAX_RESPONSE', 300), self.assertRaises(providers.ProviderError):
             providers.read_chat_stream(stream)
 
-    def test_crowbot_adapter_uses_stream_and_keeps_output_validation(self):
-        settings = {'OPENAI_API_KEY': 'fake-key', 'OPENAI_BASE_URL': 'https://api.crowbot.sh/v1',
-                    'OPENAI_API_MODE': 'chat_completions', 'OPENAI_OUTPUT_MODE': 'prompt'}
+    def test_compatible_adapter_uses_opt_in_stream_and_keeps_output_validation(self):
+        settings = {'OPENAI_API_KEY': 'fake-key', 'OPENAI_BASE_URL': 'https://api.example.com/v1',
+                    'OPENAI_API_MODE': 'chat_completions', 'OPENAI_OUTPUT_MODE': 'prompt',
+                    'OPENAI_CHAT_STREAM': 'true'}
         opener = Mock()
         opener.open.return_value = response(event({'content': '{"message":"ok"}'}), event(finish='stop'))
         with patch.object(providers, 'load_settings', return_value=settings), \
              patch.object(providers, 'build_opener', return_value=opener):
-            self.assertEqual(providers.generate_json('openai', 'claude-opus-5-5', 'sys', 'user', obj(message=TEXT)),
+            self.assertEqual(providers.generate_json('openai', 'example-model', 'sys', 'user', obj(message=TEXT)),
                              {'message': 'ok'})
         request = opener.open.call_args.args[0]
         self.assertTrue(json.loads(request.data)['stream'])
         self.assertNotIn('response_format', json.loads(request.data))
 
     def test_truncation_refusal_and_tools_are_rejected_by_adapter(self):
-        settings = {'OPENAI_API_KEY': 'fake-key', 'OPENAI_BASE_URL': 'https://api.crowbot.sh/v1',
-                    'OPENAI_API_MODE': 'chat_completions'}
+        settings = {'OPENAI_API_KEY': 'fake-key', 'OPENAI_BASE_URL': 'https://api.example.com/v1',
+                    'OPENAI_API_MODE': 'chat_completions', 'OPENAI_CHAT_STREAM': 'true'}
         for delta, finish in (({'content': '{}'}, 'length'),
                               ({'content': '{"message":"ok"}', 'refusal': 'refused'}, 'stop'),
                               ({'tool_calls': [{}]}, 'tool_calls')):
@@ -92,7 +93,7 @@ class ChatStreamTests(unittest.TestCase):
             opener.open.side_effect = HTTPError('url', status, 'secret-token', {}, None)
             with self.subTest(status=status), patch.object(providers, 'build_opener', return_value=opener):
                 with self.assertRaises(providers.ProviderError) as caught:
-                    providers.request_json('https://api.crowbot.sh/v1/chat/completions', {}, {})
+                    providers.request_json('https://api.example.com/v1/chat/completions', {}, {})
                 self.assertIn(expected, str(caught.exception))
                 self.assertNotIn('secret-token', str(caught.exception))
                 self.assertEqual(opener.open.call_count, 1)
