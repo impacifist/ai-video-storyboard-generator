@@ -36,6 +36,21 @@ window.UI_KOREAN = {
 
 // UI copy only. Never apply this catalog to persona, dialogue, or prompt content.
 window.UI_MESSAGES = {
+  "클립 분할 적용": ["Apply clip split", "クリップ分割を適用"],
+  "참고한 공식 문서": ["Official references", "参照した公式ドキュメント"],
+  "적용 가이드": ["Applied guide", "適用ガイド"],
+  "시스템 프롬프트": ["System prompt", "システムプロンプト"],
+  "Seedance · 프롬프트 가이드": ["Seedance · Prompt guide", "Seedance · プロンプトガイド"],
+  "Seedance · 영상 생성 안내": ["Seedance · Video generation tutorial", "Seedance · 動画生成ガイド"],
+  "BytePlus · 영상 생성 문서": ["BytePlus · Video generation documentation", "BytePlus · 動画生成ドキュメント"],
+  "MiniMax H3 · 공식 저장소": ["MiniMax H3 · Official repository", "MiniMax H3 · 公式リポジトリ"],
+  "MiniMax H3 · 텍스트 프롬프트 가이드": ["MiniMax H3 · Text prompt guide", "MiniMax H3 · テキストプロンプトガイド"],
+  "MiniMax H3 · 이미지 참조 가이드": ["MiniMax H3 · Image reference guide", "MiniMax H3 · 画像参照ガイド"],
+  "MiniMax H3 · 애니메이션 제작 스킬": ["MiniMax H3 · Animation production skill", "MiniMax H3 · アニメーション制作スキル"],
+  "MiniMax H3 · 샷 구성 규격": ["MiniMax H3 · Shot table specification", "MiniMax H3 · ショット構成仕様"],
+  "MiniMax H3 · 스토리보드 연출 지침": ["MiniMax H3 · Storyboard direction guidelines", "MiniMax H3 · ストーリーボード演出指針"],
+  "MiniMax H3 · 모델 선택 안내": ["MiniMax H3 · Model selection", "MiniMax H3 · モデル選択ガイド"],
+  "MiniMax H3 · 품질 검수 목록": ["MiniMax H3 · Quality checklist", "MiniMax H3 · 品質チェックリスト"],
   "LM Studio의 Developer 탭에서 모델을 로드하고 로컬 서버를 시작하세요. 서버에 표시된 모델 ID를 입력합니다.": ["Load a model and start the local server in LM Studio's Developer tab. Enter the model ID shown by the server.", "LM StudioのDeveloperタブでモデルを読み込み、ローカルサーバーを起動してください。サーバーに表示されるモデルIDを入力します。"],
   "LM Studio에 표시된 모델 ID": ["Model ID shown in LM Studio", "LM Studioに表示されるモデルID"],
   "API 키 · 선택": ["API key · optional", "APIキー・任意"],

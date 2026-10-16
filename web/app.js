@@ -1001,6 +1001,11 @@ for (const selector of ["#clip-limit", "#split-mode", "#target-model", "#guide-s
   $(selector).addEventListener("input", invalidateConversion);
 }
 $("#conversion-plan").addEventListener("click", () => libraryAction(async () => {
+  $("#split-mode").value = "auto";
+  invalidateConversion();
+  renderPlan((await api("/api/conversion/plan", conversionPayload())).plan);
+}));
+$("#conversion-split-apply").addEventListener("click", () => libraryAction(async () => {
   invalidateConversion();
   renderPlan((await api("/api/conversion/plan", conversionPayload())).plan);
 }));
@@ -1159,6 +1164,25 @@ async function ensureGuides() {
   if (!guideCatalog.length) guideCatalog = (await api("/api/guides")).guides;
 }
 
+function guideSourceTitle(url) {
+  const titles = {
+    "seedance-2-0-prompt-guide": "Seedance · 프롬프트 가이드",
+    "video-generation-tutorial": "Seedance · 영상 생성 안내",
+    "video_gen_enhanced": "BytePlus · 영상 생성 문서",
+    "MiniMax-H3": "MiniMax H3 · 공식 저장소",
+    "VIDEO_PROMPT_WRITING_GUIDE_base_en.md": "MiniMax H3 · 텍스트 프롬프트 가이드",
+    "VIDEO_PROMPT_WRITING_GUIDE_ref_en.md": "MiniMax H3 · 이미지 참조 가이드",
+    "SKILL.md": "MiniMax H3 · 애니메이션 제작 스킬",
+    "shot-table-spec.md": "MiniMax H3 · 샷 구성 규격",
+    "storyboard-guidelines.md": "MiniMax H3 · 스토리보드 연출 지침",
+    "model-selection.md": "MiniMax H3 · 모델 선택 안내",
+    "qc-checklist.md": "MiniMax H3 · 품질 검수 목록",
+  };
+  const source = new URL(url);
+  const filename = source.pathname.split("/").filter(Boolean).pop();
+  return tr(titles[filename] || `${source.hostname} · ${filename}`);
+}
+
 function applyGuide(reset = true) {
   const family = $("#video-family").value;
   const custom = family === "custom";
@@ -1183,9 +1207,10 @@ function applyGuide(reset = true) {
     $("#official-system-body").textContent = guide.system_prompt;
     $("#official-guide-status").textContent = tr("공식 자료 확인: {0} · 정수 4~15초 · 참조 이미지 최대 {1}장", {0: guide.checked_at, 1: guide.max_images});
     $("#official-guide-links").replaceChildren();
-    for (const url of guide.guide_source.split("\n")) {
-      const link = el("a", "guide-link", tr("공식 원문")); link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
-      $("#official-guide-links").append(link);
+    for (const url of [...new Set(guide.guide_source.split("\n").map((value) => value.trim()).filter(Boolean))]) {
+      const link = el("a", "guide-link", guideSourceTitle(url)); link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
+      const item = el("li"); item.append(link);
+      $("#official-guide-links").append(item);
     }
   }
   if (reset) { invalidateConversion(); $("#conversion-consent").checked = false; }

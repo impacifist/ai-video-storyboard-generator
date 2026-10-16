@@ -67,14 +67,14 @@
           <section class="conversion-settings-section"><h3>클립 분할</h3>
           <p class="helper">콘티의 컷과 대사에 맞춰 길이를 추천합니다. 아래에서 클립별 초만 바꾸면 됩니다. 전체 길이는 달라질 수 있으며 원본 콘티는 유지됩니다.</p>
           <button id="conversion-plan" class="secondary">클립 길이 자동 추천</button>
-          <details id="split-advanced" class="conversion-advanced"><summary>고급 분할 설정</summary><div class="form-grid split-settings"><label>클립 분할 방식<select id="split-mode"><option value="auto" selected>콘티에 맞게 자동 추천</option><option value="shots">컷·장면 경계 보존</option><option value="fixed">시간 기준 분할 · 최대 길이마다</option><option value="speech">대사 시간 확보 · 전체 길이 늘리기</option></select></label><label>클립 최대 길이 · 초<input id="clip-limit" type="number" min="1" max="15" step="0.1" value="15"></label></div><div class="conversion-shortcuts"><button id="conversion-auto-split" class="quiet">전체 콘티를 15초씩 자동 나누기</button><button id="conversion-speech-plan" class="quiet">대사 시간 확보 · 클립 추가 허용</button></div></details>
+          <section id="split-advanced" class="split-options"><h4>고급 분할 설정</h4><div class="form-grid split-settings"><label>클립 분할 방식<select id="split-mode"><option value="auto" selected>콘티에 맞게 자동 추천</option><option value="shots">컷·장면 경계 보존</option><option value="fixed">시간 기준 분할 · 최대 길이마다</option><option value="speech">대사 시간 확보 · 전체 길이 늘리기</option></select></label><label>클립 최대 길이 · 초<input id="clip-limit" type="number" min="1" max="15" step="0.1" value="15"></label></div><button id="conversion-split-apply" class="secondary">클립 분할 적용</button><div class="conversion-shortcuts"><button id="conversion-auto-split" class="quiet">전체 콘티를 15초씩 자동 나누기</button><button id="conversion-speech-plan" class="quiet">대사 시간 확보 · 클립 추가 허용</button></div></section>
           <div id="conversion-plan-result" class="shots"></div>
           </section>
           <details class="conversion-advanced"><summary>변환 AI 연결</summary>
           <div class="form-grid"><label>프롬프트 변환 AI<select id="conversion-ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option></select></label><label>변환 AI 모델 ID<input id="conversion-ai-model" maxlength="200" placeholder="API 설정에 등록한 모델 ID"></label></div>
           <p id="conversion-ai-note" class="helper"></p>
           </details>
-          <details id="official-guide-preview"><summary>적용할 가이드와 시스템 프롬프트</summary><div id="official-guide-links"></div><pre id="official-guide-body" class="prompt-output"></pre><pre id="official-system-body" class="prompt-output"></pre></details>
+          <details id="official-guide-preview"><summary>적용할 가이드와 시스템 프롬프트</summary><h4>참고한 공식 문서</h4><ul id="official-guide-links" class="guide-sources"></ul><h4>적용 가이드</h4><pre id="official-guide-body" class="prompt-output"></pre><h4>시스템 프롬프트</h4><pre id="official-system-body" class="prompt-output"></pre></details>
           <div class="conversion-submit">
           <p class="helper">AI 출력 검증 실패 시 최대 1회 추가 호출하여 자동 교정합니다.</p>
           <label class="check"><input id="conversion-consent" type="checkbox">선택한 AI 연결로 콘티와 가이드 본문을 전송해 변환합니다.</label>

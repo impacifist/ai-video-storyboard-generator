@@ -54,8 +54,18 @@ def main():
             expect(page.locator("#library-view")).not_to_be_visible()
             expect(page.locator("#conversion-selection")).to_contain_text("6 / 6")
             assert page.locator("#split-mode").input_value() == "auto"
-            expect(page.locator("#split-advanced")).not_to_have_attribute("open", "")
+            expect(page.locator("#split-mode")).to_be_visible()
+            expect(page.locator("#clip-limit")).to_be_visible()
+            page.locator("#split-mode").select_option("fixed")
+            page.locator("#clip-limit").fill("10")
+            page.locator("#conversion-split-apply").click()
+            expect(page.locator("#conversion-plan-result h3")).to_contain_text("3개 클립")
+            assert page.evaluate("visiblePlan.clips.map(c => c.duration)") == [10, 10, 10]
+            assert page.locator("#split-mode").input_value() == "fixed"
+            upstream.assert_not_called()
+            page.locator("#clip-limit").fill("15")
             page.locator("#conversion-plan").click()
+            assert page.locator("#split-mode").input_value() == "auto"
             expect(page.locator("[data-clip-duration]").first).to_be_visible()
             page.locator("[data-clip-duration]").first.fill("14")
             page.locator("[data-clip-duration]").first.press("Tab")
@@ -116,7 +126,14 @@ def main():
             expect(page.locator(".reference-card strong").first).to_contain_text("<Picture 1>")
             for checkbox in page.locator("#conversion-shots input").all()[3:]:
                 checkbox.uncheck()
-            page.locator("#split-advanced > summary").click()
+            page.locator("#official-guide-preview > summary").click()
+            links = page.locator("#official-guide-links a")
+            titles = links.all_text_contents()
+            assert len(titles) == 8 and len(set(titles)) == 8
+            assert "공식 원문" not in titles
+            expect(links.filter(has_text="텍스트 프롬프트 가이드")).to_be_visible()
+            expect(links.filter(has_text="샷 구성 규격")).to_be_visible()
+            page.locator("#official-guide-preview > summary").click()
             page.locator("#conversion-auto-split").click()
             expect(page.locator("#conversion-plan-result h3")).to_contain_text("2개 클립")
             assert page.locator("#conversion-shots input:checked").count() == 6
@@ -178,7 +195,6 @@ def main():
             saved = page.request.post(f"http://127.0.0.1:{server.server_port}/api/library/save", data={"document": document}).json()
             page.evaluate("id => loadSaved(id, true)", saved["saved"]["id"])
             page.locator("#video-guide").select_option("text")
-            page.locator("#split-advanced > summary").click()
             page.locator("#conversion-auto-split").click()
             expect(page.locator("#conversion-plan-result")).to_contain_text("S04: 대사 예상")
             assert page.evaluate("visiblePlan.clips.map(c => c.duration)") == [15, 15]
@@ -228,7 +244,6 @@ def main():
             # Simple path: automatic suggestion, one numeric edit, conversion.
             page.evaluate("I18n.select('ko')")
             page.locator("#split-mode").select_option("auto")
-            page.locator("#split-advanced > summary").click()
             page.locator("#conversion-plan").click()
             expect(page.locator("[data-clip-duration]").first).to_be_visible()
             page.locator("[data-clip-duration]").first.fill("14")

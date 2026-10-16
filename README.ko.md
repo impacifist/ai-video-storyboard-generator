@@ -2,7 +2,7 @@
 
 [English](README.md) · 한국어
 
-[v0.5.0-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.0-beta) · [업데이트 내역](docs/releases/v0.5.0-beta.md)
+[v0.5.1-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.1-beta) · [업데이트 내역](docs/releases/v0.5.1-beta.md)
 
 이번 업데이트는 클립 길이 자동 추천·수정, 자동 모드의 컷별 시간 배분, 인접 클립의 연결 지시와 대사 시작 계기, LM Studio 지원을 포함합니다. 배경 참조·최대 60컷·긴 콘티 분할 생성과 [카메라 기법 75선 및 한국어 참고 이미지](docs/assets/camera-techniques-ko/README.md)도 계속 제공합니다.
 
