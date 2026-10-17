@@ -139,37 +139,92 @@ def korean_document():
     return document
 
 
+def japanese_document():
+    """Authored Japanese example, not a live AI generation."""
+    document = sample_document()
+    brief = document["brief"]
+    brief.update(title="雨がやむ前に", relationship="お互いを大切に思っているクラスメイト。まだ気持ちは言葉にしていない。",
+                 location="放課後の教室", time="夕方", atmosphere="窓をたたく小雨と、柔らかな夕日の光。静かで穏やかな空気。",
+                 situation="ハルは窓際に立ち、隣の席ではユナが帰り支度をしている。",
+                 intent="ハルのためらいを、袖口に触れる小さな仕草で伝える。ユナが気づき、自然に一緒に帰ろうと誘う。",
+                 ending="ハルが誘いを受け入れ、二人は一本の傘を持って教室を出る。",
+                 required="透明な傘\n袖口に触れる仕草", excluded="直接的な告白\n大げさなギャグ",
+                 style="日常系の2Dアニメ。控えめな芝居と反応のカットを中心に、最後は静かなワイドショット。")
+    brief["characters"][0].update(name="ハル", personality="人見知りで思慮深い。親しい相手には少しお茶目な一面を見せる。",
+        speech="一人称は私。親しい同級生には短い常体で話す。頼み事をするときは言いよどむ。例：『一緒に帰ってもいい？』",
+        desire="ユナと一緒に帰りたい。", fear="気まずくなって今の関係が変わること。", habit="緊張すると袖口をつまむ。",
+        fixed="短い黒髪、紺色の制服。傘を持っていない。")
+    brief["characters"][1].update(name="ユナ", personality="相手の気持ちによく気づき、さりげなく気を配る。返事を急かさない。",
+        speech="一人称は私。同級生には穏やかな常体。提案は柔らかく、相手が返事をしやすい言い方にする。例：『一緒に帰ろう？』",
+        desire="ハルとの距離を少し縮めたい。", fear="ハルに無理をさせること。", habit="話しかけられると手を止めて聞く。",
+        fixed="長い黒髪、紺色の制服。透明な傘を一本持っている。")
+    document["story"].update(summary="一緒に帰ろうと言い出せないハルに、ユナがそっと傘を差し出す。",
+        beats=["袖口に表れるためらい", "気持ちに気づくユナ", "並んで帰る二人"],
+        assumptions=["紹介用に手作業で作成したサンプルです。AIの生成結果ではありません。"])
+    rows = [
+        ("二人の距離を見せる", "机に夕日の光が差し込み、窓には雨粒が伝う。", "ハルは窓の外を見つめ、ユナは通学かばんを閉じる。", "まだ降ってるね。", "ワイド", "固定"),
+        ("ためらいを仕草で伝える", "ハルが袖口をつまむ指先をアップで捉える。", "ハルはユナをちらりと見て、目を伏せる。", "傘、忘れちゃった。", "クローズアップ", "固定"),
+        ("返事の前に反応を見せる", "ユナが帰り支度の手を止め、ハルの方を向く。", "ユナは表情を和らげ、透明な傘を手に取る。", "私の傘、一緒に使おうよ。", "ミディアム", "ゆっくり寄る"),
+        ("自然に誘う", "ユナが傘を少し持ち上げ、自分の隣を空ける。", "ユナは急かさずに待つ。ハルがそっと顔を上げる。", "一緒に帰ろう？", "ツーショット", "固定"),
+        ("緊張がほどける", "ハルの手が袖口を離れ、口元に小さな笑みが浮かぶ。", "ハルはうなずき、ユナに一歩近づく。", "……うん。ありがとう。", "クローズアップ", "固定"),
+        ("並んで教室を出る", "夕日の差す教室で、二人が並んで出入り口へ向かう。", "ユナは閉じた傘を持ち、ハルと歩調を合わせて歩く。", "じゃ、行こっか。", "ワイド", "ゆっくり追う"),
+    ]
+    words = {"By the classroom window": "教室の窓際", "Standing, holding her sleeve": "立って袖口をつまんでいる",
+        "Toward the rain": "窓の外の雨", "Hesitant": "ためらい", "Beside the next desk": "隣の机のそば",
+        "Standing beside her bag": "かばんの横に立っている", "Toward Haru": "ハルの方", "Attentive": "相手に注意を向けている",
+        "Clear umbrella": "透明な傘", "Beside Yuna's schoolbag": "ユナのかばんの横", "In Yuna's right hand": "ユナの右手",
+        "Standing beside Yuna, hands relaxed": "手の力を抜いてユナの隣に立っている", "Toward Yuna": "ユナの方", "Relieved": "ほっとしている",
+        "At the classroom doorway": "教室の出入り口", "Walking side by side": "並んで歩いている", "Toward the corridor": "廊下の方", "Content": "穏やか"}
+    for shot, row in zip(document["story"]["shots"], rows):
+        purpose, visual, action, line, size, movement = row
+        shot.update(purpose=purpose, visual=visual, actions=[action], continuity="人物の画面内の向きと、柔らかな夕日の光を保つ。")
+        shot["dialogue"][0].update(text=line, delivery="自然な間を取り、穏やかな声で。")
+        shot["camera"].update(size=size, angle="目線の高さ", movement=movement, transition="カット")
+        for state_key in ("start_state", "end_state"):
+            for item in shot[state_key]["characters"] + shot[state_key]["props"]:
+                for field, value in item.items():
+                    item[field] = words.get(value, value)
+    document["history"][0]["event"] = "紹介用の日本語サンプルを手作業で作成"
+    engine.validate_document(document)
+    return document
+
+
 def mock_director(provider, model, system, user, schema):
     request = json.loads(user)
     english_shots = {shot["id"]: shot for shot in sample_document()["story"]["shots"]}
-    korean = any(not char.isascii() for char in request["plan"]["clips"][0]["shots"][0]["source"]["visual"])
+    visual = request["plan"]["clips"][0]["shots"][0]["source"]["visual"]
+    localized = any(not char.isascii() for char in visual)
+    dialogue_language = "Japanese" if any("\u3040" <= char <= "\u30ff" for char in visual) else "Korean" if localized else "English"
     clips = []
     for clip in request["plan"]["clips"]:
         clips.append({
             "id": clip["id"], "context": "A classroom after school. Gentle rain and warm afternoon window light.",
             "subject_definitions": ("Character 1 (haru): short dark hair, navy uniform, reserved. Character 2 (yuna): long dark hair, navy uniform, considerate."
-                                    if korean else "Haru: short dark hair, navy uniform, reserved. Yuna: long dark hair, navy uniform, considerate."),
+                                    if localized else "Haru: short dark hair, navy uniform, reserved. Yuna: long dark hair, navy uniform, considerate."),
             "summary": "A quiet invitation to walk home together.",
             "retention_analysis": "Maintain both character identities and the clear umbrella throughout.",
             "shots": [{"id": shot["id"],
+                       "pacing_weight": 1,
+                       "speech_cues": ["Begin the approved line as the gesture or response continues." for _ in shot["source"]["dialogue"]],
                        "camera": {**english_shots[shot["id"]]["camera"], "layout": english_shots[shot["id"]]["visual"]},
                        "direction": " ".join(english_shots[shot["id"]]["actions"]),
-                       "dialogue_language": "Korean" if korean else "English", "deliveries": ["Softly, with a natural pause" for line in shot["source"]["dialogue"]]}
+                       "dialogue_language": dialogue_language, "deliveries": ["Softly, with a natural pause" for line in shot["source"]["dialogue"]]}
                       for shot in clip["shots"]],
             "overall_soundscape": "Soft rain against the window, subtle fabric and footsteps.",
             "non_diegetic_music": "None; leave space for the pauses.",
         })
-    return {"warnings": [], "notes": [], "boundaries": [], "reference_notes": [], "clips": clips}
+    return {"warnings": [], "notes": [], "boundaries": [], "reference_notes": [], "clips": clips,
+            "handoffs": [{"id": h["id"], "bridge": "Continue the gesture and response at the same conversational pace.",
+                          "sound_bridge": "Keep the rain and room ambience continuous."} for h in request["plan"].get("handoffs", [])]}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--language", choices=["en", "ko"], default="en")
+    parser.add_argument("--language", choices=["en", "ko", "ja"], default="en")
     language = parser.parse_args().language
-    korean = language == "ko"
     IMAGES.mkdir(parents=True, exist_ok=True)
-    document = korean_document() if korean else sample_document()
-    prefix = "before-the-rain-stops.ko" if korean else "before-the-rain-stops"
+    document = {"en": sample_document, "ko": korean_document, "ja": japanese_document}[language]()
+    prefix = "before-the-rain-stops" + (f".{language}" if language != "en" else "")
     sample = ROOT / f"examples/{prefix}.storyboard.json"
     sample.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -184,6 +239,7 @@ def main():
              sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             page = browser.new_page(viewport={"width": 1600, "height": 1050}, device_scale_factor=1)
+            page.context.grant_permissions(["clipboard-read", "clipboard-write"])
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.add_init_script(f"localStorage.setItem('persona-storyboard.ui-language', '{language}')")
@@ -196,7 +252,9 @@ def main():
             page.evaluate("scrollTo(0, 0)")
             page.screenshot(path=str(IMAGES / f"create-{language}.png"))
 
-            titles = ["비가 그치기 전에 / 검토용 사본", "비가 그치기 전에 / 작업용 사본"] if korean else ["Before the rain stops / review copy", "Before the rain stops / working copy"]
+            titles = {"ko": ["비가 그치기 전에 / 검토용 사본", "비가 그치기 전에 / 작업용 사본"],
+                      "ja": ["雨がやむ前に / レビュー用", "雨がやむ前に / 作業用"],
+                      "en": ["Before the rain stops / review copy", "Before the rain stops / working copy"]}[language]
             for title in titles:
                 saved = copy.deepcopy(document)
                 saved["brief"]["title"] = title
@@ -205,7 +263,7 @@ def main():
             expect(page.locator(".library-row")).to_have_count(3)
             page.set_viewport_size({"width": 1600, "height": 850})
             page.screenshot(path=str(IMAGES / f"manage-{language}.png"))
-            page.locator(".library-row").last.get_by_role("button", name="프롬프트로 변환" if korean else "Convert to prompts", exact=True).click()
+            page.locator(".library-row").last.get_by_role("button", name={"ko": "프롬프트로 변환", "ja": "プロンプトに変換", "en": "Convert to prompts"}[language], exact=True).click()
             expect(page.locator("#conversion-shots input")).to_have_count(6)
             page.locator("#conversion-auto-split").click()
             expect(page.locator("#conversion-plan-result h3")).to_be_visible()
@@ -217,8 +275,25 @@ def main():
             page.set_viewport_size({"width": 1920, "height": 1250})
             page.evaluate("scrollTo(0, 0)")
             page.screenshot(path=str(IMAGES / f"convert-{language}.png"))
+            copy_buttons = page.locator("#conversion-results .prompt-copy")
+            expect(copy_buttons).to_have_count(2)
+            expected_prompts = page.evaluate("conversionEntries[0].result.output.clips.map(c => c.prompt)")
+            for index, expected_prompt in enumerate(expected_prompts):
+                awaitable = copy_buttons.nth(index)
+                awaitable.click()
+                expect(page.locator(".prompt-copy-status").nth(index)).to_contain_text(
+                    {"en": "Copied.", "ko": "복사했습니다.", "ja": "コピーしました。"}[language])
+                copied = page.evaluate("navigator.clipboard.readText()")
+                assert copied.replace("\r\n", "\n") == expected_prompt.replace("\r\n", "\n"), (len(copied), len(expected_prompt))
+            assert not page.locator(".prompt-clip").nth(1).evaluate("node => node.open")
+            # Check the selection-based fallback without changing application data.
+            page.evaluate("Object.defineProperty(navigator, 'clipboard', {configurable:true, value:undefined})")
+            copy_buttons.first.click()
+            expect(page.locator(".prompt-copy-status").first).to_contain_text(
+                {"en": "Copied.", "ko": "복사했습니다.", "ja": "コピーしました。"}[language])
+            assert upstream.call_count == 1
             with page.expect_download() as downloading:
-                page.get_by_role("button", name="전체 프롬프트 TXT 저장" if korean else "Download all prompts as TXT", exact=True).click()
+                page.get_by_role("button", name={"ko": "전체 프롬프트 TXT 저장", "ja": "全プロンプトをTXTで保存", "en": "Download all prompts as TXT"}[language], exact=True).click()
             downloading.value.save_as(str(ROOT / f"examples/{prefix}.prompts.txt"))
             exported = (ROOT / f"examples/{prefix}.prompts.txt").read_text(encoding="utf-8")
             assert "C01 | 15s" in exported and "C02 | 15s" in exported

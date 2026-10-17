@@ -4,17 +4,17 @@
 
 キャラクターの性格や話し方から、編集可能なストーリーボードを作成するローカルWebアプリです。登場人物は1〜5人まで設定でき、選んだカットをSeedance 2.0やMiniMax H3向けの動画プロンプトに変換できます。
 
-**v0.5.4-beta** — PC上で動かすダウンロード版です。作成するのはテキストのストーリーボードとプロンプトです。動画の生成や、カットごとのイラスト作成は含まれません。
+**v0.5.5-beta** — PC上で動かすダウンロード版です。作成するのはテキストのストーリーボードとプロンプトです。動画の生成や、カットごとのイラスト作成は含まれません。
 
-![キャラクター設定、セリフ、カメラ演出、固定したカットを表示する制作画面](docs/screenshots/create-en.png)
+![キャラクター設定、セリフ、カメラ演出、固定したカットを表示する日本語の制作画面](docs/screenshots/create-ja.png)
 
 キャラクターの性格と話し方を設定すると、カットごとの動作、セリフ、カメラ演出、場面の連続性を検討できます。生成後は各カットを編集でき、残したいカットを固定してから再生成することもできます。
 
-[ベータ版をダウンロード](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.4-beta) · [更新内容（英語）](docs/releases/v0.5.4-beta.md) · [サンプルのストーリーボード](examples/before-the-rain-stops.storyboard.json) · [変換済みプロンプトの例](examples/before-the-rain-stops.prompts.txt)
+[ベータ版をダウンロード](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.5-beta) · [更新内容](docs/releases/v0.5.5-beta.md) · [日本語サンプルのストーリーボード](examples/before-the-rain-stops.ja.storyboard.json) · [変換済みプロンプトの例](examples/before-the-rain-stops.ja.prompts.txt)
 
 このバージョンでは、LM Studioに加え、OllamaとローカルのOpenAI互換接続でも出力トークン上限を設定できます。リクエストの診断ログ、応答の打ち切りや推論予算に関する案内、クリップの長さの調整、背景参照画像、最大60カットの分割生成にも対応しています。ローカルLLMには固定のソケット待機時間制限を設けていません。[カメラ技法75選と参考画像（韓国語）](docs/assets/camera-techniques-ko/README.md)も同梱しています。
 
-スクリーンショットは、実際のアプリに手作業で用意した英語サンプルとテスト用の模擬AI応答を表示したものです。有料AIへの送信は行っておらず、実際のモデルの生成品質を示すものではありません。以下の操作名は英語画面に合わせています。
+スクリーンショットは、日本語UIに手作業で用意した日本語サンプルとテスト用の模擬AI応答を表示したものです。有料AIへの送信は行っておらず、実際のモデルの生成品質を示すものではありません。動画の演出指示は英語、セリフは日本語のまま出力します。v0.5.5-betaでは各クリップに「プロンプトをコピー」ボタンを追加しました。閉じたクリップや保存済みの結果からも、個別にコピーできます。
 
 ## 起動方法
 
@@ -54,7 +54,7 @@ UIは英語・韓国語・日本語に対応しています。初期表示は英
 
 タイトルを検索して内容を確認し、編集画面や変換画面へ移動できます。保存のたびに別のスナップショットを作成します。削除はごみ箱への移動なので、後から復元できます。
 
-![タイトル検索、並べ替え、プレビュー、編集、変換、削除ができる管理画面](docs/screenshots/manage-en.png)
+![タイトル検索、並べ替え、プレビュー、編集、変換、削除ができる日本語の管理画面](docs/screenshots/manage-ja.png)
 
 ### 30秒のストーリーボードを2本のプロンプトにする
 
@@ -62,15 +62,15 @@ UIは英語・韓国語・日本語に対応しています。初期表示は英
 
 Seedance 2.0またはMiniMax H3を選び、対応する内蔵ガイドを適用します。横幅の広い画面では、元のカット、分割計画、変換結果を並べて確認できます。全クリップを1つのTXTにまとめるほか、JSONや参照画像付きZIPも書き出せます。画像参照モードでは、1人のキャラクターに複数枚の画像を指定し、それぞれの用途、メモ、添付順を設定できます。
 
-![元の6カット、15秒の上限、2本のクリップ計画、変換結果とダウンロード操作](docs/screenshots/convert-en.png)
+![元の6カット、15秒の上限、2本のクリップ計画、変換結果と個別コピーボタン](docs/screenshots/convert-ja.png)
 
-試すには[サンプルJSON](examples/before-the-rain-stops.storyboard.json)を保存し、**Import JSON → Save to library**で読み込んでください。確認と編集にはAPIキーは不要です。実際のAIでプロンプトを変換するには接続設定が必要です。[同梱のTXT](examples/before-the-rain-stops.prompts.txt)はテスト用の模擬応答から作成した出力例です。
+試すには[日本語サンプルJSON](examples/before-the-rain-stops.ja.storyboard.json)を保存し、**JSON読込 → ライブラリに保存**で読み込んでください。確認と編集にはAPIキーは不要です。実際のAIでプロンプトを変換するには接続設定が必要です。[同梱のTXT](examples/before-the-rain-stops.ja.prompts.txt)はテスト用の模擬応答から作成した出力例です。
 
 ### 利用するAIを設定する
 
 ブラウザーから接続先を設定できます。OpenAI互換接続では、Base URL、API方式、JSON出力方式を指定できます。Claude、Ollama、LM Studioには個別の設定欄があるため、使うサービスだけを設定してください。
 
-![Base URL、API方式、JSON出力方式、APIキーを設定する画面](docs/screenshots/api-settings-en.png)
+![Base URL、API方式、JSON出力方式、APIキーを設定する日本語画面](docs/screenshots/api-settings-ja.png)
 
 ## AI接続の設定
 
@@ -156,7 +156,7 @@ python tests/browser_i18n.py
 
 テストには一時保存先と模擬AI応答を使用します。テストの成功は、実際の提供者の出力品質を証明するものではありません。このベータ版は有料の本番モデル呼び出しでは検証していません。
 
-資料用のスクリーンショットとサンプル出力は、PlaywrightとChromiumを用意して`python tools/capture_showcase.py`を実行すると再作成できます。韓国語版には`--language ko`を指定します。日本語のREADMEでは英語版のスクリーンショットを使用しています。
+資料用のスクリーンショットとサンプル出力は、PlaywrightとChromiumを用意して`python tools/capture_showcase.py --language ja`を実行すると再作成できます。英語版は`--language en`、韓国語版は`--language ko`を指定します。
 
 詳細は[アーキテクチャ](docs/ARCHITECTURE.md)、[実装状況](docs/IMPLEMENTATION_STATUS.md)、[韓国語ガイド](README.ko.md)をご覧ください。
 

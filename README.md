@@ -4,15 +4,15 @@ English · [한국어](README.ko.md) · [日本語](README.ja.md)
 
 A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
 
-**v0.5.4-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.5.5-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.4-beta) · [Release notes](docs/releases/v0.5.4-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.5-beta) · [Release notes](docs/releases/v0.5.5-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
-This update extends editable output-token limits to Ollama and local OpenAI-compatible connections, alongside LM Studio. Session diagnostics with copy/TXT export and truncation/reasoning guidance remain available. Local inference still has no fixed socket timeout. Editable clip lengths, continuity instructions, background references, 3–60 shots and outline-first generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included; a separate camera prompt is optional.
+This update adds **Copy prompt** beside every converted clip, including collapsed clips and reopened results. Each button copies only that clip's prompt, with its original dialogue and line breaks. The English, Korean and Japanese guides now show matching interfaces and authored examples. Local output budgets, diagnostics, editable clip lengths, background references and 3–60-shot generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included.
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
 

@@ -10,16 +10,33 @@ Source 0–15s
 A classroom after school. Gentle rain and warm afternoon window light.
 
 [Shot 1] 0–5s
-Warm light falls across two desks. Rain beads on the window. Haru watches the rain while Yuna closes her schoolbag. Camera: Wide, Eye level, Static, Cut.
+Camera: Wide; angle: Eye level; movement: Static.
+Layout: Warm light falls across two desks. Rain beads on the window.
+Haru watches the rain while Yuna closes her schoolbag.
+Speech onset: Begin the approved line as the gesture or response continues.
 Character 1 says in Korean. Delivery: Softly, with a natural pause. {아직 비 오네.}
+At the end of this source shot: Cut
 
 [Shot 2] 5–10s
-Close on Haru's fingers gathering the edge of her sleeve. Haru glances at Yuna, then lowers her eyes. Camera: Close-up, Eye level, Static, Cut.
+Camera: Close-up; angle: Eye level; movement: Static.
+Layout: Close on Haru's fingers gathering the edge of her sleeve.
+Haru glances at Yuna, then lowers her eyes.
+Speech onset: Begin the approved line as the gesture or response continues.
 Character 1 says in Korean. Delivery: Softly, with a natural pause. {우산을 안 가져왔어.}
+At the end of this source shot: Cut
 
 [Shot 3] 10–15s
-Yuna pauses beside her bag and turns toward Haru. Yuna softens her expression and reaches for the clear umbrella. Camera: Medium, Eye level, Gentle push-in, Cut.
+Camera: Medium; angle: Eye level; movement: Gentle push-in.
+Layout: Yuna pauses beside her bag and turns toward Haru.
+Yuna softens her expression and reaches for the clear umbrella.
+Speech onset: Begin the approved line as the gesture or response continues.
 Character 2 says in Korean. Delivery: Softly, with a natural pause. {내 우산 같이 쓰면 되지.}
+At the end of this source shot: Cut
+
+Outgoing connection H01 (planned_cut): Continue the gesture and response at the same conversational pace.
+Audio connection: Keep the rain and room ambience continuous.
+
+This is an intermediate generation segment, not a scene ending. Carry the approved performance into the next segment without an added fade, settling pose or silent countdown. Keep intentional pauses only where the story calls for them.
 
 Overall soundscape: Soft rain against the window, subtle fabric and footsteps.
 
@@ -32,17 +49,34 @@ Source 15–30s
 
 A classroom after school. Gentle rain and warm afternoon window light.
 
+Incoming connection H01 (planned_cut): Continue the gesture and response at the same conversational pace.
+Audio connection: Keep the rain and room ambience continuous.
+
+The scene is already underway. Continue its conversational rhythm; do not restart the setup or force speech to begin simply because this clip starts. Let each assigned line follow its stated action or response cue.
+
 [Shot 1] 0–5s
-Yuna holds up the clear umbrella, leaving space beside her. Yuna waits without rushing Haru; Haru lifts her gaze. Camera: Two-shot, Eye level, Static, Cut.
+Camera: Two-shot; angle: Eye level; movement: Static.
+Layout: Yuna holds up the clear umbrella, leaving space beside her.
+Yuna waits without rushing Haru; Haru lifts her gaze.
+Speech onset: Begin the approved line as the gesture or response continues.
 Character 2 says in Korean. Delivery: Softly, with a natural pause. {같이 갈래?}
+At the end of this source shot: Cut
 
 [Shot 2] 5–10s
-Haru releases her sleeve. A small smile replaces her uncertainty. Haru nods and steps toward Yuna. Camera: Close-up, Eye level, Static, Cut.
+Camera: Close-up; angle: Eye level; movement: Static.
+Layout: Haru releases her sleeve. A small smile replaces her uncertainty.
+Haru nods and steps toward Yuna.
+Speech onset: Begin the approved line as the gesture or response continues.
 Character 1 says in Korean. Delivery: Softly, with a natural pause. {응. 같이 가자.}
+At the end of this source shot: Cut
 
 [Shot 3] 10–15s
-Both girls walk toward the classroom door in the warm afternoon light. Yuna carries the closed umbrella as they leave side by side. Camera: Wide, Eye level, Slow follow, Cut.
+Camera: Wide; angle: Eye level; movement: Slow follow.
+Layout: Both girls walk toward the classroom door in the warm afternoon light.
+Yuna carries the closed umbrella as they leave side by side.
+Speech onset: Begin the approved line as the gesture or response continues.
 Character 2 says in Korean. Delivery: Softly, with a natural pause. {그럼 가자.}
+At the end of this source shot: Cut
 
 Overall soundscape: Soft rain against the window, subtle fabric and footsteps.
 

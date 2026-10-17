@@ -1,0 +1,83 @@
+VIDEO PROMPTS
+============================================================
+Seedance 2.0
+
+------------------------------------------------------------
+C01 | 15s
+Source 0–15s
+------------------------------------------------------------
+
+A classroom after school. Gentle rain and warm afternoon window light.
+
+[Shot 1] 0–5s
+Camera: Wide; angle: Eye level; movement: Static.
+Layout: Warm light falls across two desks. Rain beads on the window.
+Haru watches the rain while Yuna closes her schoolbag.
+Speech onset: Begin the approved line as the gesture or response continues.
+Character 1 says in Japanese. Delivery: Softly, with a natural pause. {まだ降ってるね。}
+At the end of this source shot: Cut
+
+[Shot 2] 5–10s
+Camera: Close-up; angle: Eye level; movement: Static.
+Layout: Close on Haru's fingers gathering the edge of her sleeve.
+Haru glances at Yuna, then lowers her eyes.
+Speech onset: Begin the approved line as the gesture or response continues.
+Character 1 says in Japanese. Delivery: Softly, with a natural pause. {傘、忘れちゃった。}
+At the end of this source shot: Cut
+
+[Shot 3] 10–15s
+Camera: Medium; angle: Eye level; movement: Gentle push-in.
+Layout: Yuna pauses beside her bag and turns toward Haru.
+Yuna softens her expression and reaches for the clear umbrella.
+Speech onset: Begin the approved line as the gesture or response continues.
+Character 2 says in Japanese. Delivery: Softly, with a natural pause. {私の傘、一緒に使おうよ。}
+At the end of this source shot: Cut
+
+Outgoing connection H01 (planned_cut): Continue the gesture and response at the same conversational pace.
+Audio connection: Keep the rain and room ambience continuous.
+
+This is an intermediate generation segment, not a scene ending. Carry the approved performance into the next segment without an added fade, settling pose or silent countdown. Keep intentional pauses only where the story calls for them.
+
+Overall soundscape: Soft rain against the window, subtle fabric and footsteps.
+
+Non-diegetic music: None; leave space for the pauses.
+
+------------------------------------------------------------
+C02 | 15s
+Source 15–30s
+------------------------------------------------------------
+
+A classroom after school. Gentle rain and warm afternoon window light.
+
+Incoming connection H01 (planned_cut): Continue the gesture and response at the same conversational pace.
+Audio connection: Keep the rain and room ambience continuous.
+
+The scene is already underway. Continue its conversational rhythm; do not restart the setup or force speech to begin simply because this clip starts. Let each assigned line follow its stated action or response cue.
+
+[Shot 1] 0–5s
+Camera: Two-shot; angle: Eye level; movement: Static.
+Layout: Yuna holds up the clear umbrella, leaving space beside her.
+Yuna waits without rushing Haru; Haru lifts her gaze.
+Speech onset: Begin the approved line as the gesture or response continues.
+Character 2 says in Japanese. Delivery: Softly, with a natural pause. {一緒に帰ろう？}
+At the end of this source shot: Cut
+
+[Shot 2] 5–10s
+Camera: Close-up; angle: Eye level; movement: Static.
+Layout: Haru releases her sleeve. A small smile replaces her uncertainty.
+Haru nods and steps toward Yuna.
+Speech onset: Begin the approved line as the gesture or response continues.
+Character 1 says in Japanese. Delivery: Softly, with a natural pause. {……うん。ありがとう。}
+At the end of this source shot: Cut
+
+[Shot 3] 10–15s
+Camera: Wide; angle: Eye level; movement: Slow follow.
+Layout: Both girls walk toward the classroom door in the warm afternoon light.
+Yuna carries the closed umbrella as they leave side by side.
+Speech onset: Begin the approved line as the gesture or response continues.
+Character 2 says in Japanese. Delivery: Softly, with a natural pause. {じゃ、行こっか。}
+At the end of this source shot: Cut
+
+Overall soundscape: Soft rain against the window, subtle fabric and footsteps.
+
+Non-diegetic music: None; leave space for the pauses.
