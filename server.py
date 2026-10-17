@@ -6,7 +6,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from storyboard import conversion, engine, guides, library, providers, references
+from storyboard import conversion, diagnostics, engine, guides, library, providers, references
 from storyboard.schema import ValidationError, validate_brief
 
 ROOT = Path(__file__).resolve().parent
@@ -69,6 +69,8 @@ class Handler(BaseHTTPRequestHandler):
                             "application/json; charset=utf-8")
         elif self.path == "/api/guides":
             self.send_json({"guides": guides.catalog()})
+        elif self.path == "/api/diagnostics":
+            self.send_json(diagnostics.listing())
         elif self.path.startswith(("/api/references/image/", "/api/conversion/package/")):
             try:
                 key = self.path.rsplit("/", 1)[-1]
@@ -82,6 +84,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             files = {"/": ("index.html", "text/html; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                     "/diagnostics.js": ("diagnostics.js", "text/javascript; charset=utf-8"),
                      "/translations.js": ("translations.js", "text/javascript; charset=utf-8"),
                      "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"),
                      "/style.css": ("style.css", "text/css; charset=utf-8")}
@@ -106,11 +109,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": "이미지 형식과 5MB 이하 크기를 확인해주세요." if self.path == "/api/references/upload"
                             else "요청은 16MB 이내여야 합니다."}, 413)
             return
+        scope = diagnostics.begin_operation(self.path)
         try:
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
                 raise ValidationError("JSON 객체가 필요합니다.")
-            if self.path == "/api/library/list":
+            if self.path == "/api/diagnostics/clear":
+                diagnostics.clear_completed()
+                self.send_json(diagnostics.listing())
+            elif self.path == "/api/library/list":
                 self.send_json({"items": library.listing(payload.get("deleted", False))})
             elif self.path == "/api/library/save":
                 self.send_json({"saved": library.save(payload.get("document"))})
@@ -183,6 +190,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({"error": str(exc)}, 502)
         except Exception:
             self.send_json({"error": "처리 중 오류가 발생했습니다. 기존 콘티는 유지됩니다."}, 500)
+        finally:
+            diagnostics.end_operation(scope)
 
 
 def main():

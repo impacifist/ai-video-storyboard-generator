@@ -135,6 +135,8 @@ def main():
             expect(page.locator("#settings-lmstudio-url")).to_have_value("http://127.0.0.1:1234/v1")
             page.locator("#settings-lmstudio-url").fill("")
             page.locator("#settings-lmstudio-model").fill("local-model")
+            expect(page.locator("#settings-lmstudio-max-tokens")).to_have_value("16000")
+            page.locator("#settings-lmstudio-max-tokens").fill("24000")
             page.locator("#settings-save").click()
             expect(page.locator("#settings-dialog")).not_to_be_visible()
             assert providers.load_settings()["OPENAI_API_KEY"] == "fake-gateway-key"
@@ -145,6 +147,7 @@ def main():
                 import json
                 assert url == "http://127.0.0.1:1234/v1/chat/completions"
                 assert headers == {}
+                assert payload["max_tokens"] == 24000
                 assert payload["response_format"]["type"] == "json_schema"
                 source = json.loads(payload["messages"][-1]["content"])
                 result = engine.demo_story(source["brief"]) if "revision_request" in source else {"summary": "LM Studio 모의 검수", "findings": []}
@@ -164,6 +167,7 @@ def main():
             expect(page.locator("#model")).to_have_value("local-model")
             page.locator("#settings-open").click()
             expect(page.locator("#settings-panel-lmstudio")).to_be_visible()
+            expect(page.locator("#settings-lmstudio-max-tokens")).to_have_value("24000")
             for language in ("ko", "en", "ja"):
                 page.evaluate("lang => I18n.select(lang)", language)
                 expect(page.locator("#settings-save")).to_contain_text("LM Studio")

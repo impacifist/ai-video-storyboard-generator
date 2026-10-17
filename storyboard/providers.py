@@ -10,6 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
+from . import diagnostics
 from .schema import ValidationError, validate
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,11 +19,18 @@ MAX_STREAM_BYTES = 32_000_000
 SETTING_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_MODEL", "CLAUDE_MODEL",
                   "OLLAMA_MODEL", "OLLAMA_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_MODE",
                   "OPENAI_OUTPUT_MODE", "OPENAI_CHAT_STREAM", "LMSTUDIO_BASE_URL", "LMSTUDIO_MODEL", "LMSTUDIO_API_KEY",
-                  "LMSTUDIO_OUTPUT_MODE"}
+                  "LMSTUDIO_OUTPUT_MODE", "LMSTUDIO_MAX_TOKENS"}
 KEY_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "LMSTUDIO_API_KEY"}
 SETTINGS_LOCK = threading.Lock()
 DEFAULT_OPENAI_BASE = "https://api.openai.com/v1"
 DEFAULT_LMSTUDIO_BASE = "http://127.0.0.1:1234/v1"
+
+
+def lmstudio_output_limit(value="16000"):
+    if (not isinstance(value, str) or not value.isascii() or not value.isdecimal()
+            or len(value) > 6 or not 256 <= int(value) <= 131072):
+        raise ValidationError("LM Studio 출력 한도는 256~131072 사이의 정수로 입력해주세요.")
+    return int(value)
 
 
 def lmstudio_url(value):
@@ -123,6 +131,8 @@ def save_settings(payload):
             raise ValidationError("OpenAI API 방식을 선택해주세요.")
         if key in ("OPENAI_OUTPUT_MODE", "LMSTUDIO_OUTPUT_MODE") and value not in ("json_schema", "json_object", "prompt"):
             raise ValidationError("JSON 출력 방식을 선택해주세요.")
+        if key == "LMSTUDIO_MAX_TOKENS":
+            value = str(lmstudio_output_limit(value or "16000"))
         changes[key] = value
     if set(clear) & set(changes):
         raise ValidationError("같은 키를 교체하면서 삭제할 수 없습니다.")
@@ -193,6 +203,7 @@ def configuration():
     return {"ollama_base_url": ollama_url(settings.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")),
             "openai_base_url": base, "openai_api_mode": mode, "openai_output_mode": output,
             "lmstudio_base_url": lm_base, "lmstudio_output_mode": settings.get("LMSTUDIO_OUTPUT_MODE", "json_schema"),
+            "lmstudio_max_tokens": lmstudio_output_limit(settings.get("LMSTUDIO_MAX_TOKENS", "16000")),
             "environment_fields": sorted(SETTING_FIELDS & set(os.environ)), "providers": [
         {"id": "demo", "name": "예시 모드", "configured": True, "model": "",
          "destination": "전송 없음 · 고정 템플릿 체험"},
@@ -216,12 +227,15 @@ def read_chat_stream(response):
     content, finish, size, event = [], None, 0, []
     content_size = 0
     message = {}
+    usage = None
     while True:
         raw = response.readline(MAX_RESPONSE + 1)
         size += len(raw)
         if size > MAX_STREAM_BYTES or len(raw) > MAX_RESPONSE:
+            diagnostics.mark("response_too_large")
             raise ProviderError("AI 스트리밍 응답이 수신 한도를 초과했습니다. 기존 콘티는 유지됩니다.")
         if not raw:
+            diagnostics.mark("stream_interrupted")
             raise ProviderError("AI 스트리밍 응답이 중단되었습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
         line = raw.decode("utf-8").rstrip("\r\n")
         if line.startswith("data:"):
@@ -231,13 +245,20 @@ def read_chat_stream(response):
         data, event = "\n".join(event), []
         if data == "[DONE]":
             if finish is None:
+                diagnostics.mark("stream_interrupted")
                 raise ProviderError("AI 스트리밍 응답이 중단되었습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
             message["content"] = "".join(content)
-            return {"choices": [{"finish_reason": finish, "message": message}]}
+            result = {"choices": [{"finish_reason": finish, "message": message}]}
+            if usage is not None:
+                result["usage"] = usage
+            return result
         chunk = json.loads(data)
         if not isinstance(chunk, dict) or chunk.get("error"):
+            diagnostics.mark("stream_error")
             raise ProviderError("AI 스트리밍 서버가 오류를 반환했습니다. 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.")
         choices = chunk.get("choices")
+        if isinstance(chunk.get("usage"), dict):
+            usage = chunk["usage"]
         if not isinstance(choices, list) or len(choices) > 1:
             raise ValueError("Invalid stream choices")
         if not choices:  # Usage-only final events contain no generated text.
@@ -254,6 +275,7 @@ def read_chat_stream(response):
                 raise ValueError("Invalid stream content")
             content_size += len(text.encode("utf-8"))
             if content_size > MAX_RESPONSE:
+                diagnostics.mark("response_too_large")
                 raise ProviderError("AI 생성 내용이 수신 한도를 초과했습니다. 기존 콘티는 유지됩니다.")
             content.append(text)
         for field in ("refusal", "tool_calls"):
@@ -265,42 +287,74 @@ def read_chat_stream(response):
 def request_json(url, payload, headers, timeout=180):
     # Local inference can legitimately take many minutes before its first byte.
     # None disables socket timeouts for both connection and response reads.
-    if urlsplit(url).hostname in ("localhost", "127.0.0.1", "::1"):
+    local = urlsplit(url).hostname in ("localhost", "127.0.0.1", "::1")
+    if local:
         timeout = None
+    diagnostics.transport(local, timeout, payload.get("stream") is True)
     request = Request(url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                       headers={"Content-Type": "application/json", **headers}, method="POST")
     # Do not inherit proxy settings or follow redirects with credentials.
     opener = build_opener(ProxyHandler({}), NoRedirect())
     try:
         with opener.open(request, timeout=timeout) as response:
+            diagnostics.transport(local, timeout, payload.get("stream") is True, getattr(response, "status", 200))
             if payload.get("stream") is True:
                 return read_chat_stream(response)
             raw = response.read(MAX_RESPONSE + 1)
         if len(raw) > MAX_RESPONSE:
+            diagnostics.mark("response_too_large")
             raise ProviderError("AI 생성 내용이 수신 한도를 초과했습니다. 기존 콘티는 유지됩니다.")
         value = json.loads(raw)
         if not isinstance(value, dict):
+            diagnostics.mark("invalid_response")
             raise ProviderError("AI 제공자의 응답 형식이 잘못되었습니다.")
         return value
     except HTTPError as exc:
+        diagnostics.transport(local, timeout, payload.get("stream") is True, exc.code)
+        diagnostics.mark("http_error")
         # Upstream errors may echo user input or credentials. Do not relay them.
         if exc.code in (502, 503, 504):
             raise ProviderError(f"AI 제공 서버 오류 또는 시간 초과 (HTTP {exc.code}). 기존 콘티는 유지됩니다. 자동 재시도하지 않았습니다.") from None
         if exc.code == 429:
             raise ProviderError("AI 요청 한도 또는 동시 요청 제한에 도달했습니다 (HTTP 429). 진행 중인 요청이 끝난 뒤 다시 시도해주세요.") from None
         raise ProviderError(f"AI 요청 실패 (HTTP {exc.code}). 키·모델·사용 한도를 확인해주세요.") from None
-    except (URLError, TimeoutError, socket.timeout, OSError):
+    except (URLError, TimeoutError, socket.timeout, OSError) as exc:
+        timed_out = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(getattr(exc, "reason", None), (TimeoutError, socket.timeout))
+        diagnostics.mark("timeout" if timed_out else "connection_error")
         raise ProviderError("AI 서버에 연결할 수 없거나 응답 시간이 초과되었습니다. 자동 재시도하지 않았습니다.") from None
     except (ValueError, UnicodeError):
+        diagnostics.mark("invalid_json")
         raise ProviderError("AI 서버가 올바른 JSON 응답을 반환하지 않았습니다.") from None
 
 
 def generate_json(provider, model, system, user, schema):
+    trace = diagnostics.Trace(provider)
+    try:
+        result = _generate_json(provider, model, system, user, schema, trace)
+    except OutputValidationError:
+        trace.finish("schema_error")
+        raise
+    except ValidationError:
+        trace.finish("configuration_error")
+        raise
+    except ProviderError:
+        trace.finish("provider_error")
+        raise
+    except Exception:
+        trace.finish("unexpected_error")
+        raise
+    trace.finish("ok")
+    return result
+
+
+def _generate_json(provider, model, system, user, schema, trace):
     if provider not in ("ollama", "openai", "claude", "lmstudio"):
         raise ValidationError("지원하지 않는 AI 제공자입니다.")
     if not isinstance(model, str) or not model.strip() or len(model) > 200:
         raise ValidationError("사용할 모델 ID를 입력해주세요.")
     settings = load_settings()
+    output_limit = lmstudio_output_limit(settings.get("LMSTUDIO_MAX_TOKENS", "16000")) if provider == "lmstudio" else 16000
+    trace.configure(model, [settings.get(key) for key in KEY_FIELDS], output_limit)
     schema_text = json.dumps(schema, ensure_ascii=False)
     instruction = system + "\n다음 JSON Schema에 맞는 JSON 객체만 반환하세요:\n" + schema_text
     if provider == "ollama":
@@ -310,7 +364,9 @@ def generate_json(provider, model, system, user, schema):
             "model": model, "messages": [{"role": "system", "content": instruction},
                                            {"role": "user", "content": user}],
             "stream": False, "format": schema, "options": {"num_predict": 16000}}, {})
+        diagnostics.response_metadata(result)
         if result.get("done") is not True or result.get("done_reason") == "length":
+            diagnostics.failure_from_response()
             raise ProviderError("Ollama 응답이 완료되지 않았습니다. 컷 수를 줄여주세요.")
         content = result.get("message", {}).get("content")
     elif provider in ("openai", "lmstudio"):
@@ -331,21 +387,35 @@ def generate_json(provider, model, system, user, schema):
             payload = {"model": model, "stream": stream, "messages": [
                 {"role": "system", "content": instruction}, {"role": "user", "content": user}]}
             token_field = "max_completion_tokens" if urlsplit(base).hostname == "api.openai.com" else "max_tokens"
-            payload[token_field] = 16000
+            payload[token_field] = output_limit
             if output == "json_schema":
                 payload["response_format"] = {"type": "json_schema", "json_schema": {
                     "name": "storyboard", "strict": True, "schema": schema}}
             elif output == "json_object":
                 payload["response_format"] = {"type": "json_object"}
             result = request_json(base + "/chat/completions", payload, headers)
+            diagnostics.response_metadata(result)
             choices = result.get("choices")
             if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict):
+                diagnostics.mark("invalid_response")
                 raise ProviderError("OpenAI 호환 API의 choices 응답 형식이 잘못되었습니다.")
             choice = choices[0]
             message = choice.get("message")
             if not isinstance(message, dict) or choice.get("finish_reason") != "stop":
+                diagnostics.failure_from_response()
+                if choice.get("finish_reason") == "length":
+                    usage = result.get("usage")
+                    usage = usage if isinstance(usage, dict) else {}
+                    details = usage.get("completion_tokens_details")
+                    reasoning = details.get("reasoning_tokens") if isinstance(details, dict) else None
+                    completion = usage.get("completion_tokens")
+                    if (type(completion) is int and type(reasoning) is int
+                            and 0 < completion <= 1_000_000_000 and completion * .9 <= reasoning <= completion):
+                        raise ProviderError("추론에 출력 예산 대부분을 사용하여 응답이 잘렸습니다. 모델의 추론 모드·예산과 요청 출력 한도를 확인해주세요. 진단 로그에서 토큰 사용량을 볼 수 있습니다.")
+                    raise ProviderError("출력 한도에 도달해 응답이 잘렸습니다. 요청 출력 한도와 모델의 컨텍스트 설정을 확인해주세요. 진단 로그에서 토큰 사용량을 볼 수 있습니다.")
                 raise ProviderError("응답이 완료되지 않았습니다. 출력 잘림·거절·도구 호출 여부를 확인해주세요.")
             if message.get("refusal") or message.get("tool_calls"):
+                diagnostics.mark("refused" if message.get("refusal") else "tool_call")
                 raise ProviderError("모델이 요청을 거절했거나 지원하지 않는 도구 호출을 반환했습니다.")
             content = message.get("content")
         else:
@@ -356,11 +426,15 @@ def generate_json(provider, model, system, user, schema):
             elif output == "json_object":
                 payload["text"] = {"format": {"type": "json_object"}}
             result = request_json(base + "/responses", payload, headers)
+            diagnostics.response_metadata(result)
             if result.get("status") != "completed":
+                if not isinstance(result.get("incomplete_details"), dict) or result["incomplete_details"].get("reason") != "max_output_tokens":
+                    diagnostics.failure_from_response()
                 raise ProviderError("OpenAI 응답이 완료되지 않았습니다. 모델 설정과 출력 한도를 확인해주세요.")
             chunks = [part for item in result.get("output", []) if item.get("type") == "message"
                       for part in item.get("content", [])]
             if any(p.get("type") == "refusal" for p in chunks):
+                diagnostics.mark("refused")
                 raise ProviderError("OpenAI가 요청에 대한 생성을 거절했습니다.")
             content = "".join(p.get("text", "") for p in chunks if p.get("type") == "output_text")
     else:
@@ -372,10 +446,13 @@ def generate_json(provider, model, system, user, schema):
             "messages": [{"role": "user", "content": user}],
             "output_config": {"format": {"type": "json_schema", "schema": schema}}},
             {"x-api-key": key, "anthropic-version": "2023-06-01"})
+        diagnostics.response_metadata(result)
         if result.get("stop_reason") != "end_turn":
+            diagnostics.failure_from_response()
             raise ProviderError("Claude 응답이 완료되지 않았거나 거절되었습니다. 모델과 출력 한도를 확인해주세요.")
         content = "".join(p.get("text", "") for p in result.get("content", []) if p.get("type") == "text")
     if not isinstance(content, str) or not content.strip():
+        diagnostics.mark("empty_output")
         raise ProviderError("AI가 사용할 수 있는 텍스트를 반환하지 않았습니다.")
     try:
         # Some compatible models wrap JSON in one Markdown fence. Accept only that
@@ -386,6 +463,7 @@ def generate_json(provider, model, system, user, schema):
             clean = "\n".join(lines[1:-1])
         value = json.loads(clean)
     except ValueError:
+        diagnostics.mark("invalid_json")
         raise ProviderError("AI 출력이 JSON이 아닙니다. 기존 콘티는 유지됩니다.") from None
     try:
         validate(value, schema, "AI 응답")

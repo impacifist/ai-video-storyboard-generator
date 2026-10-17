@@ -28,7 +28,7 @@ class ChatStreamTests(unittest.TestCase):
             event({'content': '{"message":'}), event({'content': '"한국어"}'}),
             event(finish='stop'), {'choices': [], 'usage': {'total_tokens': 10}}))
         self.assertEqual(result, {'choices': [{'finish_reason': 'stop',
-                         'message': {'content': '{"message":"한국어"}'}}]})
+                         'message': {'content': '{"message":"한국어"}'}}], 'usage': {'total_tokens': 10}})
 
     def test_disconnect_and_missing_finish_never_succeed(self):
         for stream in (response(event({'content': '{}'}), done=False),

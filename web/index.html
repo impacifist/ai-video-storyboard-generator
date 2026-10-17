@@ -8,6 +8,7 @@
   <script src="/translations.js" defer></script>
   <script src="/i18n.js" defer></script>
   <script src="/app.js" defer></script>
+  <script src="/diagnostics.js" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -30,6 +31,7 @@
           </div>
         </div>
         <button id="settings-open" class="quiet">⚙ API 설정</button>
+        <button id="diagnostics-open" class="quiet">진단 로그</button>
         <button id="import" class="quiet">↥ JSON 불러오기</button>
         <button id="save-input" class="quiet">입력 저장</button>
         <input id="file" type="file" accept=".json,application/json" hidden>
@@ -37,6 +39,7 @@
     </header>
     <main>
       <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <button id="diagnostics-error-open" class="quiet" hidden>진단 로그 보기</button>
       <div id="library-home"><section id="library-view" hidden aria-label="콘티 관리">
         <div class="section-heading library-heading"><div><h2 id="library-title">저장한 콘티</h2><p id="library-count" class="helper" role="status"></p></div><button id="library-refresh" class="secondary">목록 새로고침</button></div>
         <div class="library-toolbar"><label class="library-search-field">제목 검색<input id="library-search" type="search" placeholder="콘티 이름으로 찾기"></label><label>보관함<select id="library-filter"><option value="active">저장한 콘티</option><option value="trash">휴지통</option></select></label><label>정렬<select id="library-sort"><option value="newest">최근 저장 순</option><option value="oldest">오래된 순</option><option value="title">제목 순</option></select></label></div>
@@ -159,6 +162,8 @@
       <p class="helper">LM Studio의 Developer 탭에서 모델을 로드하고 로컬 서버를 시작하세요. 서버에 표시된 모델 ID를 입력합니다.</p>
       <label>Base URL<input id="settings-lmstudio-url" type="text" inputmode="url" autocomplete="off" maxlength="2048" placeholder="http://127.0.0.1:1234/v1"></label>
       <label>기본 모델 ID<input id="settings-lmstudio-model" maxlength="200" placeholder="LM Studio에 표시된 모델 ID"></label>
+      <label>요청 출력 한도 · 토큰<input id="settings-lmstudio-max-tokens" type="number" min="256" max="131072" step="1" value="16000" aria-describedby="settings-lmstudio-token-note"></label>
+      <p id="settings-lmstudio-token-note" class="helper">추론과 본문이 함께 사용하는 출력 예산입니다. 기본 16000. 입력 토큰과 출력 한도의 합이 모델에 설정한 컨텍스트 길이를 넘지 않게 조절하세요. 추론이 과도하면 모델의 추론 설정도 확인하세요. 값을 높여도 완성이나 품질이 보장되지는 않습니다.</p>
       <label>JSON 출력 방식<select id="settings-lmstudio-output"><option value="json_schema">JSON Schema · 엄격한 구조화 출력</option><option value="json_object">JSON 모드 · 모델 지원 필요</option><option value="prompt">프롬프트 JSON · 호환 우선</option></select></label>
       <p id="settings-lmstudio-status" class="helper"></p>
       <label>API 키 · 선택<input id="settings-lmstudio-key" type="password" autocomplete="new-password" maxlength="4096" placeholder="LM Studio에서 인증을 켠 경우만 입력"></label>
@@ -204,5 +209,12 @@
     <details><summary>고급 편집 · 인물과 소품의 시작·종료 상태</summary><p class="helper">상태는 구조화된 데이터입니다. 시작과 종료의 인물 ID를 유지하세요.</p><label>상태 데이터<textarea id="edit-json" rows="12" spellcheck="false"></textarea></label></details>
     <p id="edit-error" class="error-text" role="alert"></p><button id="save-edit" type="submit" class="primary">변경 저장</button>
   </form></dialog>
+  <dialog id="diagnostics-dialog" aria-labelledby="diagnostics-title">
+    <div class="section-heading"><h2 id="diagnostics-title">진단 로그</h2><button id="diagnostics-close" type="button" class="quiet">닫기 ×</button></div>
+    <p class="helper">현재 실행 중인 앱의 최근 AI 요청 200건을 표시합니다. 재시작하면 초기화됩니다. API 키·주소·프롬프트·대사·응답 본문은 기록하지 않습니다.</p>
+    <div class="diagnostics-actions"><button id="diagnostics-refresh" type="button" class="secondary">새로고침</button><button id="diagnostics-copy" type="button" class="secondary">로그 복사</button><button id="diagnostics-download" type="button" class="secondary">로그 TXT 저장</button><button id="diagnostics-clear" type="button" class="quiet">완료된 로그 지우기</button></div>
+    <p id="diagnostics-status" class="helper" role="status"></p>
+    <div id="diagnostics-list" aria-live="polite"></div>
+  </dialog>
 </body>
 </html>

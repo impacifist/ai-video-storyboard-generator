@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from storyboard import providers
+from storyboard import diagnostics, providers
 from storyboard.schema import TEXT, ValidationError, obj
 
 
@@ -45,6 +45,56 @@ class LMStudioTests(unittest.TestCase):
             self.assertEqual(headers, {"Authorization": "Bearer fake-local-secret"})
             self.assertEqual("response_format" in payload, mode != "prompt")
             self.assertNotIn("OPENAI_API_KEY", providers.local_settings())
+
+    def test_custom_output_limit_persists_and_applies_to_request_and_log(self):
+        config = self.save({"LMSTUDIO_MAX_TOKENS": "24000"})
+        self.assertEqual(config["lmstudio_max_tokens"], 24000)
+        self.assertEqual(providers.local_settings()["LMSTUDIO_MAX_TOKENS"], "24000")
+        with patch.object(providers, "request_json", return_value=self.response) as request:
+            providers.generate_json("lmstudio", "local", "s", "u", self.schema)
+        self.assertEqual(request.call_args.args[1]["max_tokens"], 24000)
+        self.assertEqual(diagnostics.listing()["entries"][0]["output_limit"], 24000)
+        with patch.dict(os.environ, {"LMSTUDIO_MAX_TOKENS": "32000"}):
+            self.assertEqual(providers.configuration()["lmstudio_max_tokens"], 32000)
+            with self.assertRaises(ValidationError):
+                self.save({"LMSTUDIO_MAX_TOKENS": "24000"})
+
+    def test_invalid_output_limit_fails_without_partial_save_or_request(self):
+        self.save({"LMSTUDIO_MAX_TOKENS": "24000"})
+        for value in ("0", "255", "131073", "-1", "1.5", "1e4", "NaN", "abc", "９９９", "9" * 200):
+            with self.subTest(value=value):
+                with self.assertRaises(ValidationError):
+                    self.save({"LMSTUDIO_MODEL": "must-not-save", "LMSTUDIO_MAX_TOKENS": value})
+                self.assertEqual(providers.local_settings(), {"LMSTUDIO_MAX_TOKENS": "24000"})
+                with patch.dict(os.environ, {"LMSTUDIO_MAX_TOKENS": value}), \
+                     patch.object(providers, "request_json") as request:
+                    with self.assertRaises(ValidationError):
+                        providers.generate_json("lmstudio", "local", "s", "u", self.schema)
+                    request.assert_not_called()
+        self.assertEqual(self.save({"LMSTUDIO_MAX_TOKENS": ""})["lmstudio_max_tokens"], 16000)
+
+    def test_length_error_explains_reasoning_exhaustion_without_retry(self):
+        response = {"choices": [{"finish_reason": "length", "message": {"content": "PRIVATE"}}],
+                    "usage": {"completion_tokens": 16000, "completion_tokens_details": {"reasoning_tokens": 15933}}}
+        with patch.object(providers, "request_json", return_value=response) as request:
+            with self.assertRaises(providers.ProviderError) as error:
+                providers.generate_json("lmstudio", "local", "s", "u", self.schema)
+            request.assert_called_once()
+        self.assertIn("추론에 출력 예산 대부분", str(error.exception))
+        self.assertNotIn("PRIVATE", str(error.exception))
+        response["usage"]["completion_tokens_details"]["reasoning_tokens"] = 100
+        with patch.object(providers, "request_json", return_value=response):
+            with self.assertRaises(providers.ProviderError) as error:
+                providers.generate_json("lmstudio", "local", "s", "u", self.schema)
+        self.assertIn("출력 한도에 도달", str(error.exception))
+        self.assertNotIn("추론에 출력 예산 대부분", str(error.exception))
+
+    def test_lmstudio_limit_does_not_change_other_provider_payloads(self):
+        self.save({"LMSTUDIO_MAX_TOKENS": "24000", "OPENAI_API_KEY": "fake-test-key",
+                   "OPENAI_API_MODE": "chat_completions"})
+        with patch.object(providers, "request_json", return_value=self.response) as request:
+            providers.generate_json("openai", "local", "s", "u", self.schema)
+        self.assertEqual(request.call_args.args[1]["max_completion_tokens"], 16000)
 
     def test_save_without_key_or_address_and_clear_preserves_other_providers(self):
         with patch.object(providers, "request_json") as request:

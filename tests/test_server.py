@@ -8,10 +8,33 @@ from pathlib import Path
 from unittest.mock import patch
 
 from server import Handler
-from storyboard import library
+from storyboard import diagnostics, library
 
 
 class HTTPTests(unittest.TestCase):
+    def test_diagnostics_routes_and_origin_boundaries(self):
+        diagnostics.clear_completed()
+        trace = diagnostics.Trace("lmstudio")
+        trace.configure("local-model", [])
+        diagnostics.response_metadata({"choices": [{"finish_reason": "length"}], "usage": {
+            "prompt_tokens": 14400, "completion_tokens": 16000,
+            "completion_tokens_details": {"reasoning_tokens": 15933}}})
+        try:
+            status, _, raw = self.request("/api/diagnostics")
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(raw)["entries"][0]["status"], "running")
+            self.assertEqual(self.request("/api/diagnostics", headers={"Origin": "https://evil.example"})[0], 403)
+            self.assertEqual(self.request("/api/diagnostics/clear", {}, {"Origin": "https://evil.example"})[0], 403)
+            self.assertEqual(self.request("/api/diagnostics", headers={"Host": "evil.example"})[0], 403)
+            status, _, raw = self.request("/api/diagnostics/clear", {})
+            self.assertEqual(status, 200)
+            self.assertEqual(len(json.loads(raw)["entries"]), 1)
+        finally:
+            trace.finish("length")
+        status, _, raw = self.request("/api/diagnostics/clear", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["entries"], [])
+
     def test_reference_http_security_and_guide_catalog(self):
         import base64
 

@@ -19,12 +19,13 @@ const settingFields = {
   OPENAI_OUTPUT_MODE: "#settings-openai-output",
   LMSTUDIO_BASE_URL: "#settings-lmstudio-url", LMSTUDIO_MODEL: "#settings-lmstudio-model",
   LMSTUDIO_API_KEY: "#settings-lmstudio-key", LMSTUDIO_OUTPUT_MODE: "#settings-lmstudio-output",
+  LMSTUDIO_MAX_TOKENS: "#settings-lmstudio-max-tokens",
 };
 const providerSettingKeys = {
   ollama: ["OLLAMA_BASE_URL", "OLLAMA_MODEL"],
   openai: ["OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_MODE", "OPENAI_OUTPUT_MODE"],
   claude: ["ANTHROPIC_API_KEY", "CLAUDE_MODEL"],
-  lmstudio: ["LMSTUDIO_BASE_URL", "LMSTUDIO_MODEL", "LMSTUDIO_API_KEY", "LMSTUDIO_OUTPUT_MODE"],
+  lmstudio: ["LMSTUDIO_BASE_URL", "LMSTUDIO_MODEL", "LMSTUDIO_API_KEY", "LMSTUDIO_OUTPUT_MODE", "LMSTUDIO_MAX_TOKENS"],
 };
 const providerNames = {openai: "OpenAI", claude: "Claude", ollama: "Ollama", lmstudio: "LM Studio"};
 
@@ -72,6 +73,7 @@ async function openSettings() {
     $("#settings-openai-output").value = config.openai_output_mode || "json_schema";
     $("#settings-lmstudio-url").value = config.lmstudio_base_url || "http://127.0.0.1:1234/v1";
     $("#settings-lmstudio-output").value = config.lmstudio_output_mode || "json_schema";
+    $("#settings-lmstudio-max-tokens").value = config.lmstudio_max_tokens ?? 16000;
     for (const id of Object.keys(providerSettingKeys)) {
       const provider = providers.find((p) => p.id === id);
       $(`#settings-${id}-model`).value = provider?.model || "";
@@ -126,6 +128,7 @@ function notice(message, error = false) {
   $("#notice").textContent = message;
   $("#notice").className = error ? "notice error" : "notice";
   $("#notice").hidden = !message;
+  $("#diagnostics-error-open").hidden = !message || !error;
 }
 
 async function api(path, body) {
@@ -151,6 +154,7 @@ function setBusy(value, message = "") {
   busy = value;
   document.body.classList.toggle("busy", value);
   document.querySelectorAll("button, input, textarea, select").forEach((node) => { node.disabled = value; });
+  document.querySelectorAll("#diagnostics-open, #diagnostics-error-open, #diagnostics-dialog button").forEach((node) => { node.disabled = false; });
   if (!value) updateProvider(false);
   updateCastControls();
   settingsDisabled();

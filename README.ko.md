@@ -2,9 +2,9 @@
 
 [English](README.md) · 한국어
 
-[v0.5.2-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.2-beta) · [업데이트 내역](docs/releases/v0.5.2-beta.md)
+[v0.5.3-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.3-beta) · [업데이트 내역](docs/releases/v0.5.3-beta.md)
 
-이번 패치는 LM Studio·Ollama·로컬 OpenAI 호환 연결의 180초 응답 대기 제한을 제거합니다. 클립 길이 자동 추천·수정, 시간 배분·연결 지침, 배경 참조·최대 60컷·긴 콘티 분할 생성과 [카메라 기법 75선 및 한국어 참고 이미지](docs/assets/camera-techniques-ko/README.md)는 계속 제공합니다.
+이번 업데이트는 진단 로그 조회·복사·TXT 저장, LM Studio 출력 토큰 한도 설정과 응답 잘림·추론 예산 소진 안내를 추가합니다. 로컬 LLM의 고정 소켓 대기 제한 제거도 유지됩니다. 클립 길이 자동 추천·수정, 시간 배분·연결 지침, 배경 참조·최대 60컷·긴 콘티 분할 생성과 [카메라 기법 75선 및 한국어 참고 이미지](docs/assets/camera-techniques-ko/README.md)는 계속 제공합니다.
 
 ## 화면으로 보는 사용 흐름
 
@@ -76,6 +76,10 @@ python server.py
 AI 생성이 실패해도 예시 결과로 자동 대체하지 않습니다.
 
 ## AI 연결 설정
+
+**LM Studio 출력 예산:** API 설정 → LM Studio → 요청 출력 한도에서 `max_tokens`를 조절할 수 있습니다(기본 16000, 범위 256~131072). 저장한 값은 콘티 제작·검수·변환에 적용됩니다. 추론도 같은 출력 예산을 사용할 수 있으므로 입력 토큰과 출력 한도의 합이 모델에 설정한 컨텍스트 길이를 넘지 않게 조절하세요. 한도를 높여도 완성은 보장되지 않습니다. 앱은 잘린 응답을 자동 재시도하거나 미확인 추론 제어 옵션을 보내지 않습니다. 추론에 출력 예산 대부분을 사용했다면 모델의 추론 설정도 확인하세요. `.env` 또는 환경변수의 `LMSTUDIO_MAX_TOKENS`로도 설정할 수 있으며 환경변수 관리 항목은 웹에서 변경할 수 없습니다. [공식 지원 파라미터](https://lmstudio.ai/docs/developer/openai-compat/chat-completions).
+
+상단 **진단 로그** 또는 오류 옆 **진단 로그 보기**에서 AI 요청 상태, 경과 시간, 종료 사유, 토큰 사용량(서버가 제공하는 경우 추론 토큰 포함), 요청 출력 한도와 HTTP 상태를 확인할 수 있습니다. 로그 복사·TXT 저장으로 오류를 공유하세요. 최근 200건을 메모리에만 보관하며 서버 재시작 시 초기화됩니다. 이전 오류를 소급 조회할 수는 없습니다. 요청·응답 본문, API 키, 서버 주소는 기록하지 않습니다. 요청 성공은 전체 콘티 검증 통과를 의미하지 않습니다. `length`로 종료되고 출력 대부분이 추론 토큰이라면 컨텍스트를 늘리기 전에 모델의 추론 모드나 추론 예산을 확인하세요.
 
 **LM Studio**는 Developer 탭에서 모델을 로드하고 서버를 시작한 뒤, 앱의 **API 설정 → LM Studio**에서 모델 ID를 입력해 저장하면 됩니다. 기본 주소는 `http://127.0.0.1:1234/v1`이며 Chat Completions와 JSON Schema를 사용합니다. 서버 인증을 켠 경우에만 선택 API 키를 입력하세요. 모델에 따라 JSON 모드·프롬프트 JSON으로 직접 바꿀 수 있습니다. OpenAI의 주소·모델·키와 별도로 저장하며 로컬 주소만 허용합니다. 설정 저장만으로 모델을 호출하지 않습니다. [공식 연결 안내](https://lmstudio.ai/docs/developer/openai-compat) · [인증 안내](https://lmstudio.ai/docs/developer/core/authentication)
 

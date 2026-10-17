@@ -36,6 +36,7 @@
 - 웹 API 설정: `/api/config`는 키 등록 상태와 공개 설정만 반환하고 `/api/settings`는
   검증된 변경을 `.local-secrets/ui-settings.json`에 원자적으로 저장합니다. 키는 로컬 평문
   보관이며 프로세스 환경변수 > 웹 설정 > `.env` 순으로 적용합니다.
+- `storyboard/diagnostics.py`, `web/diagnostics.js`: 세션별 최근 200건의 AI 요청 메타데이터를 메모리에 보관하고 상태·종료 사유·토큰 사용량·추론 토큰·HTTP 상태를 조회/복사/TXT 저장합니다. ContextVar로 동시 요청을 격리하고 진행 중 로그는 삭제하지 않습니다. 본문·키·URL·예외 문자열은 기록하지 않으며 모델 ID의 알려진 키를 가립니다. `/api/diagnostics`와 `/api/diagnostics/clear`는 기존 Host/Origin 검사를 사용합니다. 서버가 제공하지 않은 지표는 추정하지 않습니다.
 - `web/`: 설정, 콘티 카드, 편집, 고정, 파일 입출력 화면
 - `web/translations.js`, `web/i18n.js`: 한국어·영어·일본어 UI 사전과 언어 전환.
   최초 정적 UI 및 명시적으로 지정한 UI 문구만 번역하며 사용자·모델 원문을 탐색하거나
