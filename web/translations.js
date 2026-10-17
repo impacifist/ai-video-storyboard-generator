@@ -36,6 +36,9 @@ window.UI_KOREAN = {
 
 // UI copy only. Never apply this catalog to persona, dialogue, or prompt content.
 window.UI_MESSAGES = {
+  "로컬 연결 출력 한도 · 토큰": ["Local connection output limit · tokens", "ローカル接続の出力上限 · トークン"],
+  "Base URL이 localhost, 127.0.0.1 또는 ::1인 로컬 호환 연결에만 적용합니다. 기본 16000. 입력과 출력 예산이 모델의 컨텍스트 안에 들어가도록 조절하세요. 클라우드 연결에는 적용하지 않습니다.": ["Applies only to compatible local endpoints whose Base URL uses localhost, 127.0.0.1 or ::1. Default: 16000. Keep input plus the output budget within the model's context. Does not apply to cloud endpoints.", "Base URLがlocalhost、127.0.0.1、::1のローカル互換接続にのみ適用します。初期値は16000。入力と出力枠の合計がモデルのコンテキスト内に収まるよう調整してください。クラウド接続には適用しません。"],
+  "로컬 AI 출력 한도는 256~131072 사이의 정수로 입력해주세요.": ["Enter a local AI output limit between 256 and 131072 tokens, using a whole number.", "ローカルAIの出力上限は256～131072の整数で入力してください。"],
   "요청 출력 한도 · 토큰": ["Requested output limit · tokens", "要求する出力上限 · トークン"],
   "추론과 본문이 함께 사용하는 출력 예산입니다. 기본 16000. 입력 토큰과 출력 한도의 합이 모델에 설정한 컨텍스트 길이를 넘지 않게 조절하세요. 추론이 과도하면 모델의 추론 설정도 확인하세요. 값을 높여도 완성이나 품질이 보장되지는 않습니다.": ["Shared output budget for reasoning and response text. Default: 16000. Keep input tokens plus the output limit within the model's loaded context length. If reasoning is excessive, also check the model's reasoning settings. A higher limit does not guarantee completion or quality.", "推論と応答本文で共有する出力枠です。初期値は16000。入力トークンと出力上限の合計が、モデルに設定したコンテキスト長を超えないよう調整してください。推論が長すぎる場合はモデルの推論設定も確認してください。上限を増やしても完成や品質は保証されません。"],
   "LM Studio 출력 한도는 256~131072 사이의 정수로 입력해주세요.": ["Enter an LM Studio output limit between 256 and 131072 tokens, using a whole number.", "LM Studioの出力上限は256～131072の整数で入力してください。"],

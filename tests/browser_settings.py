@@ -44,7 +44,7 @@ def main():
             with page.expect_request("**/api/settings") as saved_request:
                 page.locator("#settings-save").click()
             assert set(saved_request.value.post_data_json["values"]) == {
-                "OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_MODE", "OPENAI_OUTPUT_MODE"}
+                "OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_MODE", "OPENAI_OUTPUT_MODE", "OPENAI_LOCAL_MAX_TOKENS"}
             expect(page.locator("#settings-dialog")).not_to_be_visible()
             assert providers.load_settings()["OPENAI_API_KEY"] == "fake-openai-only-key"
             assert "ANTHROPIC_API_KEY" not in providers.load_settings()
@@ -55,6 +55,12 @@ def main():
                 if provider != "ollama":
                     page.locator(f"#settings-{provider}-key").fill(f"fake-browser-{provider}-key")
                 page.locator(f"#settings-{provider}-model").fill(f"{provider}-model")
+                if provider == "ollama":
+                    expect(page.locator("#settings-ollama-max-tokens")).to_have_value("16000")
+                    page.locator("#settings-ollama-max-tokens").fill("32000")
+                if provider == "openai":
+                    expect(page.locator("#settings-openai-local-max-tokens")).to_have_value("16000")
+                    page.locator("#settings-openai-local-max-tokens").fill("24000")
                 page.locator("#settings-save").click()
                 expect(page.locator("#settings-dialog")).not_to_be_visible()
             page.locator("#provider").select_option("openai")
@@ -63,6 +69,7 @@ def main():
             page.reload()
             page.locator("#settings-open").click()
             expect(page.locator("#settings-openai-status")).to_contain_text("등록됨")
+            expect(page.locator("#settings-openai-local-max-tokens")).to_have_value("24000")
             expect(page.locator("#settings-openai-key")).to_have_value("")
             expect(page.locator("#settings-claude-key")).to_have_value("")
             page.locator("#settings-openai-model").fill("updated-model")
@@ -71,6 +78,7 @@ def main():
             assert providers.load_settings()["OPENAI_API_KEY"] == "fake-browser-openai-key"
             page.locator("#settings-open").click()
             page.locator("#settings-provider").select_option("ollama")
+            expect(page.locator("#settings-ollama-max-tokens")).to_have_value("32000")
             page.locator("#settings-ollama-url").fill("http://evil.example")
             page.locator("#settings-save").click()
             expect(page.locator("#settings-error")).to_contain_text("로컬 HTTP")

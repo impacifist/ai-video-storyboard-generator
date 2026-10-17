@@ -19,17 +19,17 @@ MAX_STREAM_BYTES = 32_000_000
 SETTING_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_MODEL", "CLAUDE_MODEL",
                   "OLLAMA_MODEL", "OLLAMA_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_MODE",
                   "OPENAI_OUTPUT_MODE", "OPENAI_CHAT_STREAM", "LMSTUDIO_BASE_URL", "LMSTUDIO_MODEL", "LMSTUDIO_API_KEY",
-                  "LMSTUDIO_OUTPUT_MODE", "LMSTUDIO_MAX_TOKENS"}
+                  "LMSTUDIO_OUTPUT_MODE", "LMSTUDIO_MAX_TOKENS", "OLLAMA_MAX_TOKENS", "OPENAI_LOCAL_MAX_TOKENS"}
 KEY_FIELDS = {"OPENAI_API_KEY", "ANTHROPIC_API_KEY", "LMSTUDIO_API_KEY"}
 SETTINGS_LOCK = threading.Lock()
 DEFAULT_OPENAI_BASE = "https://api.openai.com/v1"
 DEFAULT_LMSTUDIO_BASE = "http://127.0.0.1:1234/v1"
 
 
-def lmstudio_output_limit(value="16000"):
+def local_output_limit(value="16000"):
     if (not isinstance(value, str) or not value.isascii() or not value.isdecimal()
             or len(value) > 6 or not 256 <= int(value) <= 131072):
-        raise ValidationError("LM Studio 출력 한도는 256~131072 사이의 정수로 입력해주세요.")
+        raise ValidationError("로컬 AI 출력 한도는 256~131072 사이의 정수로 입력해주세요.")
     return int(value)
 
 
@@ -131,8 +131,8 @@ def save_settings(payload):
             raise ValidationError("OpenAI API 방식을 선택해주세요.")
         if key in ("OPENAI_OUTPUT_MODE", "LMSTUDIO_OUTPUT_MODE") and value not in ("json_schema", "json_object", "prompt"):
             raise ValidationError("JSON 출력 방식을 선택해주세요.")
-        if key == "LMSTUDIO_MAX_TOKENS":
-            value = str(lmstudio_output_limit(value or "16000"))
+        if key in ("LMSTUDIO_MAX_TOKENS", "OLLAMA_MAX_TOKENS", "OPENAI_LOCAL_MAX_TOKENS"):
+            value = str(local_output_limit(value or "16000"))
         changes[key] = value
     if set(clear) & set(changes):
         raise ValidationError("같은 키를 교체하면서 삭제할 수 없습니다.")
@@ -203,7 +203,9 @@ def configuration():
     return {"ollama_base_url": ollama_url(settings.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")),
             "openai_base_url": base, "openai_api_mode": mode, "openai_output_mode": output,
             "lmstudio_base_url": lm_base, "lmstudio_output_mode": settings.get("LMSTUDIO_OUTPUT_MODE", "json_schema"),
-            "lmstudio_max_tokens": lmstudio_output_limit(settings.get("LMSTUDIO_MAX_TOKENS", "16000")),
+            "lmstudio_max_tokens": local_output_limit(settings.get("LMSTUDIO_MAX_TOKENS", "16000")),
+            "ollama_max_tokens": local_output_limit(settings.get("OLLAMA_MAX_TOKENS", "16000")),
+            "openai_local_max_tokens": local_output_limit(settings.get("OPENAI_LOCAL_MAX_TOKENS", "16000")),
             "environment_fields": sorted(SETTING_FIELDS & set(os.environ)), "providers": [
         {"id": "demo", "name": "예시 모드", "configured": True, "model": "",
          "destination": "전송 없음 · 고정 템플릿 체험"},
@@ -353,7 +355,12 @@ def _generate_json(provider, model, system, user, schema, trace):
     if not isinstance(model, str) or not model.strip() or len(model) > 200:
         raise ValidationError("사용할 모델 ID를 입력해주세요.")
     settings = load_settings()
-    output_limit = lmstudio_output_limit(settings.get("LMSTUDIO_MAX_TOKENS", "16000")) if provider == "lmstudio" else 16000
+    limit_key = {"lmstudio": "LMSTUDIO_MAX_TOKENS", "ollama": "OLLAMA_MAX_TOKENS"}.get(provider)
+    if provider == "openai":
+        base, _, _ = openai_options(settings)
+        if urlsplit(base).hostname in ("localhost", "127.0.0.1", "::1"):
+            limit_key = "OPENAI_LOCAL_MAX_TOKENS"
+    output_limit = local_output_limit(settings.get(limit_key, "16000")) if limit_key else 16000
     trace.configure(model, [settings.get(key) for key in KEY_FIELDS], output_limit)
     schema_text = json.dumps(schema, ensure_ascii=False)
     instruction = system + "\n다음 JSON Schema에 맞는 JSON 객체만 반환하세요:\n" + schema_text
@@ -363,10 +370,12 @@ def _generate_json(provider, model, system, user, schema, trace):
         result = request_json(base + "/api/chat", {
             "model": model, "messages": [{"role": "system", "content": instruction},
                                            {"role": "user", "content": user}],
-            "stream": False, "format": schema, "options": {"num_predict": 16000}}, {})
+            "stream": False, "format": schema, "options": {"num_predict": output_limit}}, {})
         diagnostics.response_metadata(result)
         if result.get("done") is not True or result.get("done_reason") == "length":
             diagnostics.failure_from_response()
+            if result.get("done_reason") == "length":
+                raise ProviderError("출력 한도에 도달해 응답이 잘렸습니다. 요청 출력 한도와 모델의 컨텍스트 설정을 확인해주세요. 진단 로그에서 토큰 사용량을 볼 수 있습니다.")
             raise ProviderError("Ollama 응답이 완료되지 않았습니다. 컷 수를 줄여주세요.")
         content = result.get("message", {}).get("content")
     elif provider in ("openai", "lmstudio"):
@@ -420,7 +429,7 @@ def _generate_json(provider, model, system, user, schema, trace):
             content = message.get("content")
         else:
             payload = {"model": model, "instructions": instruction, "input": user,
-                       "store": False, "max_output_tokens": 16000}
+                       "store": False, "max_output_tokens": output_limit}
             if output == "json_schema":
                 payload["text"] = {"format": {"type": "json_schema", "name": "storyboard", "strict": True, "schema": schema}}
             elif output == "json_object":

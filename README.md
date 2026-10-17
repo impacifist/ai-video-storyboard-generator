@@ -4,15 +4,15 @@ English · [한국어](README.ko.md)
 
 A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
 
-**v0.5.3-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.5.4-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.3-beta) · [Release notes](docs/releases/v0.5.3-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.4-beta) · [Release notes](docs/releases/v0.5.4-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
-This update adds session diagnostics with copy/TXT export, an editable LM Studio output-token limit and clearer truncation/reasoning errors. Local inference still has no fixed socket timeout. Editable clip lengths, continuity instructions, background references, 3–60 shots and outline-first generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included; a separate camera prompt is optional.
+This update extends editable output-token limits to Ollama and local OpenAI-compatible connections, alongside LM Studio. Session diagnostics with copy/TXT export and truncation/reasoning guidance remain available. Local inference still has no fixed socket timeout. Editable clip lengths, continuity instructions, background references, 3–60 shots and outline-first generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included; a separate camera prompt is optional.
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
 
@@ -65,6 +65,8 @@ Configure providers from the browser. OpenAI-compatible endpoints support a cust
 ![English API settings dialog showing OpenAI-compatible base URL, API mode, JSON output options, and an empty API key field](docs/screenshots/api-settings-en.png)
 
 ## AI settings
+
+**All supported local connections have a configurable output budget.** Use API settings → Ollama or LM Studio → Requested output limit; for other local servers, use OpenAI → Local connection output limit. Each connection stores its own value (default 16000, range 256–131072) for generation, review and conversion. Ollama sends [`options.num_predict`](https://docs.ollama.com/modelfile); local compatible Chat Completions/Responses send `max_tokens`/`max_output_tokens`. The compatible-server setting applies to `localhost`, `127.0.0.1` and `::1` only; cloud limits remain unchanged. Environment keys: `OLLAMA_MAX_TOKENS`, `LMSTUDIO_MAX_TOKENS`, `OPENAI_LOCAL_MAX_TOKENS`. These controls set output budgets, not model context length or reasoning mode.
 
 **LM Studio output budget:** API settings → LM Studio → Requested output limit lets you change `max_tokens` (default 16000, range 256–131072). The value persists and applies to generation, review and conversion. Reasoning may share this budget with the response text. Keep input tokens plus this limit within the loaded model's context; increasing it does not guarantee completion. The app does not automatically retry truncated responses or send unsupported thinking controls. For a `length` finish dominated by reasoning, also check the model's reasoning settings. `LMSTUDIO_MAX_TOKENS` can be set in `.env` or the environment; environment-managed values cannot be edited in the UI. [LM Studio's supported parameters](https://lmstudio.ai/docs/developer/openai-compat/chat-completions).
 

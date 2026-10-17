@@ -2,9 +2,9 @@
 
 [English](README.md) · 한국어
 
-[v0.5.3-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.3-beta) · [업데이트 내역](docs/releases/v0.5.3-beta.md)
+[v0.5.4-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.4-beta) · [업데이트 내역](docs/releases/v0.5.4-beta.md)
 
-이번 업데이트는 진단 로그 조회·복사·TXT 저장, LM Studio 출력 토큰 한도 설정과 응답 잘림·추론 예산 소진 안내를 추가합니다. 로컬 LLM의 고정 소켓 대기 제한 제거도 유지됩니다. 클립 길이 자동 추천·수정, 시간 배분·연결 지침, 배경 참조·최대 60컷·긴 콘티 분할 생성과 [카메라 기법 75선 및 한국어 참고 이미지](docs/assets/camera-techniques-ko/README.md)는 계속 제공합니다.
+이번 업데이트는 LM Studio에 이어 Ollama·로컬 OpenAI 호환 연결까지 출력 토큰 한도 설정을 확대합니다. 진단 로그 조회·복사·TXT 저장, 응답 잘림·추론 예산 소진 안내와 로컬 LLM의 고정 소켓 대기 제한 제거도 유지됩니다. 클립 길이 자동 추천·수정, 시간 배분·연결 지침, 배경 참조·최대 60컷·긴 콘티 분할 생성과 [카메라 기법 75선 및 한국어 참고 이미지](docs/assets/camera-techniques-ko/README.md)는 계속 제공합니다.
 
 ## 화면으로 보는 사용 흐름
 
@@ -76,6 +76,8 @@ python server.py
 AI 생성이 실패해도 예시 결과로 자동 대체하지 않습니다.
 
 ## AI 연결 설정
+
+**지원하는 모든 로컬 연결의 출력 예산을 조절할 수 있습니다.** API 설정 → Ollama·LM Studio의 요청 출력 한도, 또는 OpenAI의 로컬 연결 출력 한도에서 설정하세요. 제공자별로 저장하며 기본 16000, 범위 256~131072이고 제작·검수·변환에 적용합니다. Ollama는 [`options.num_predict`](https://docs.ollama.com/modelfile), 로컬 호환 Chat Completions/Responses는 `max_tokens`/`max_output_tokens`로 전송합니다. 호환 연결 설정은 `localhost`, `127.0.0.1`, `::1`에만 적용하며 클라우드 출력 한도는 유지합니다. 환경변수는 `OLLAMA_MAX_TOKENS`, `LMSTUDIO_MAX_TOKENS`, `OPENAI_LOCAL_MAX_TOKENS`입니다. 출력 예산 설정이며 모델의 컨텍스트 길이·추론 모드를 변경하지는 않습니다.
 
 **LM Studio 출력 예산:** API 설정 → LM Studio → 요청 출력 한도에서 `max_tokens`를 조절할 수 있습니다(기본 16000, 범위 256~131072). 저장한 값은 콘티 제작·검수·변환에 적용됩니다. 추론도 같은 출력 예산을 사용할 수 있으므로 입력 토큰과 출력 한도의 합이 모델에 설정한 컨텍스트 길이를 넘지 않게 조절하세요. 한도를 높여도 완성은 보장되지 않습니다. 앱은 잘린 응답을 자동 재시도하거나 미확인 추론 제어 옵션을 보내지 않습니다. 추론에 출력 예산 대부분을 사용했다면 모델의 추론 설정도 확인하세요. `.env` 또는 환경변수의 `LMSTUDIO_MAX_TOKENS`로도 설정할 수 있으며 환경변수 관리 항목은 웹에서 변경할 수 없습니다. [공식 지원 파라미터](https://lmstudio.ai/docs/developer/openai-compat/chat-completions).
 
