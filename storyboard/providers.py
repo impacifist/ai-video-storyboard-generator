@@ -263,6 +263,10 @@ def read_chat_stream(response):
 
 
 def request_json(url, payload, headers, timeout=180):
+    # Local inference can legitimately take many minutes before its first byte.
+    # None disables socket timeouts for both connection and response reads.
+    if urlsplit(url).hostname in ("localhost", "127.0.0.1", "::1"):
+        timeout = None
     request = Request(url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                       headers={"Content-Type": "application/json", **headers}, method="POST")
     # Do not inherit proxy settings or follow redirects with credentials.
