@@ -1,6 +1,6 @@
 # AI 영상 스토리보드 생성기
 
-[English](README.md) · 한국어
+[English](README.md) · 한국어 · [日本語](README.ja.md)
 
 [v0.5.4-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.4-beta) · [업데이트 내역](docs/releases/v0.5.4-beta.md)
 

@@ -1,6 +1,6 @@
 # AI Video Storyboard Generator
 
-English · [한국어](README.ko.md)
+English · [한국어](README.ko.md) · [日本語](README.ja.md)
 
 A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
 
