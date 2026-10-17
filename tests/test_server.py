@@ -43,7 +43,7 @@ class HTTPTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary, patch.object(library, "ROOT", Path(temporary)):
             status, _, raw = self.request("/api/guides")
             self.assertEqual(status, 200)
-            self.assertEqual(len(json.loads(raw)["guides"]), 4)
+            self.assertEqual(len(json.loads(raw)["guides"]), 6)
             _, _, raw = self.request("/api/example")
             _, _, raw = self.request("/api/generate", {"brief": json.loads(raw), "provider": "demo"})
             document = json.loads(raw)["document"]

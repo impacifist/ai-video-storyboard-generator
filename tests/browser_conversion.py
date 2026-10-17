@@ -37,6 +37,7 @@ def main():
              patch.object(providers, "generate_json", side_effect=fake_compile) as upstream, sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             page = browser.new_page(viewport={"width": 1440, "height": 1000})
+            page.context.grant_permissions(["clipboard-read", "clipboard-write"])
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.add_init_script("localStorage.setItem('persona-storyboard.ui-language', 'ko')")
@@ -276,6 +277,37 @@ def main():
             page.screenshot(path=str(screenshots / "conversion-wide.png"), full_page=True)
             page.set_viewport_size({"width": 390, "height": 900})
             page.screenshot(path=str(screenshots / "conversion-mobile.png"))
+            # LTX must ignore saved identity references and render both input modes as prose.
+            page.evaluate("I18n.select('ko')")
+            page.set_viewport_size({"width": 1440, "height": 1000})
+            page.locator("#video-family").select_option("ltx")
+            expect(page.locator("#target-model")).to_have_value("LTX 2.5")
+            expect(page.locator("#reference-panel")).not_to_be_visible()
+            assert page.evaluate("conversionPayload().guide_id") == "ltx-2.5-text"
+            assert page.evaluate("conversionPayload().references") == []
+            for mode in ("text", "image"):
+                page.locator("#video-guide").select_option(mode)
+                page.locator("#conversion-consent").check()
+                page.locator("#conversion-run").click()
+                page.wait_for_function("guide => conversionResult?.guide_id === guide && !busy", arg=f"ltx-2.5-{mode}")
+                expect(page.locator("#notice")).to_contain_text("프롬프트를 변환해 보관")
+                assert page.evaluate("conversionResult.guide_id") == f"ltx-2.5-{mode}"
+                prompt = page.evaluate("conversionResult.output.clips[0].prompt")
+                assert "[Shot" not in prompt and "<Picture" not in prompt and "<d>" not in prompt
+                page.locator("#conversion-results .prompt-copy").first.click()
+                expect(page.locator("#conversion-results .prompt-copy-status").first).to_have_text("복사했습니다.")
+                assert page.evaluate("navigator.clipboard.readText()").replace("\r\n", "\n") == prompt.replace("\r\n", "\n")
+                with page.expect_download() as download:
+                    page.get_by_role("button", name="전체 프롬프트 TXT 저장", exact=True).click()
+                assert prompt in Path(download.value.path()).read_text(encoding="utf-8")
+            for language in ("en", "ja", "ko"):
+                page.evaluate("lang => I18n.select(lang)", language)
+                expect(page.locator("#ltx-image-help")).to_be_visible()
+                assert page.locator("#video-guide").input_value() == "image"
+                assert page.evaluate("conversionPayload().guide_id") == "ltx-2.5-image"
+            page.locator("#video-family").select_option("minimax")
+            assert page.locator("#video-guide").input_value() == "text"
+            expect(page.locator("#ltx-image-help")).not_to_be_visible()
             assert not errors, errors
             browser.close()
             print("PASS: saved preview, official profiles, variable references, reorder/persist, both model compilations, ZIP, languages and mobile; mocked AI only.")

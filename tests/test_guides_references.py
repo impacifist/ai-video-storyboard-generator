@@ -41,7 +41,7 @@ class GuideReferencesTests(unittest.TestCase):
         return direction_output(data["plan"], data["references"])
 
     def test_catalog_sources_and_hash_are_stable(self):
-        self.assertEqual(len(guides.catalog()), 4)
+        self.assertEqual(len(guides.catalog()), 6)
         for profile in guides.catalog():
             self.assertIn("https://", profile["guide_source"])
             self.assertEqual(profile["sha256"], guides.profile(profile["id"])["sha256"])
@@ -62,7 +62,7 @@ class GuideReferencesTests(unittest.TestCase):
                     self.assertNotEqual(profile["sha256"], guides.profile(profile["id"])["sha256"])
             else:
                 self.assertNotIn(supplement, profile["system_prompt"])
-                self.assertEqual(profile["checked_at"], "2026-10-10")
+                self.assertEqual(profile["checked_at"], "2026-10-18" if profile["id"].startswith("ltx") else "2026-10-10")
 
     def test_h3_animation_contract_reaches_compiler_without_changing_clip_plan(self):
         self.payload.update(guide_id="minimax-h3-text", split_mode="fixed", references=[])

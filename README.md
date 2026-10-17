@@ -2,19 +2,25 @@
 
 English · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0 or MiniMax H3.
+A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0, MiniMax H3 or LTX 2.5.
 
-**v0.5.5-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.5.6-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.5-beta) · [Release notes](docs/releases/v0.5.5-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.6-beta) · [Release notes](docs/releases/v0.5.6-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
 This update adds **Copy prompt** beside every converted clip, including collapsed clips and reopened results. Each button copies only that clip's prompt, with its original dialogue and line breaks. The English, Korean and Japanese guides now show matching interfaces and authored examples. Local output budgets, diagnostics, editable clip lengths, background references and 3–60-shot generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included.
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
+
+## LTX 2.5 conversion
+
+Choose **LTX 2.5** in Convert, then **Text → video** or **Starting image → video**. The bundled [reviewed guide](docs/guides/ltx-2.5.md) and [compiler policy](docs/guides/ltx-system.md) produce chronological English prose with quoted original dialogue, approved camera transitions and audio continuity. Per-clip copy and TXT/JSON exports work as before.
+
+For image-to-video, connect each clip's opening image in your video workflow. This app does not analyze that image or connect it to LTX nodes. Identity-reference uploads remain available for MiniMax/Seedance reference modes. The current 4–15-second planner range is an application policy, not LTX's model limit. Set actual frames/FPS in the video workflow; disable Prompt Enhance when testing the exact generated text. Prompt conversion has been tested with mocked AI; rendered video quality and seamless joins are not verified.
 
 ## Quick start
 
@@ -33,7 +39,7 @@ No additional Python packages are required to run the app. The template demo wor
 1. Open API settings and configure OpenAI, an OpenAI-compatible endpoint, Claude, Ollama, or LM Studio. Enter a model ID available through your provider. Saving settings does not call the model.
 2. Add or remove character personas (1–5), then enter their relationships, location, situation, and story direction. Choose 3–60 shots for a 10–180-second storyboard; a duration-based suggestion helps with pacing. For 13+ shots, AI generation first plans the full arc, then expands batches of up to 6 shots with prior-shot context and locked anchors. This uses more API calls and costs more; all batches must validate before returning the completed storyboard. Each call retains a 16,000-token budget. Generation and regeneration failures never return a partial storyboard as complete.
 3. Use Manage to search, reopen, preview, trash, or restore saved storyboards.
-4. Open Convert, select shots, and choose Seedance 2.0 or MiniMax H3. Click **Suggest clip lengths**, then edit the seconds on any clip before conversion. The default plans at shot boundaries, estimates dialogue time and balances clips without forcing each to 15 seconds. Total playback time may change; the saved storyboard stays intact. Fixed 15-second windows remain under **Advanced splitting**.
+4. Open Convert, select shots, and choose Seedance 2.0, MiniMax H3 or LTX 2.5. Click **Suggest clip lengths**, then edit the seconds on any clip before conversion. The default plans at shot boundaries, estimates dialogue time and balances clips without forcing each to 15 seconds. Total playback time may change; the saved storyboard stays intact. Fixed 15-second windows remain under **Advanced splitting**.
 5. Optionally attach multiple character and background reference images, set their roles, and arrange attachment order. Generate prompts and download TXT, JSON, or a ZIP with reference images.
 
 The interface supports English (default), Korean, and Japanese. The globe menu saves your language choice across browser sessions. Source dialogue and user content retain their original language.
@@ -52,7 +58,7 @@ Search saved storyboards, preview their contents, reopen them for editing, or se
 
 In this example, Haru hesitates to ask Yuna to walk home together. Six five-second shots move from a sleeve gesture to a quiet invitation. Select the saved storyboard, keep the 15-second limit, and preview two clips: **C01, 0–15 seconds**, and **C02, 15–30 seconds**.
 
-Choose Seedance 2.0 or MiniMax H3 to apply its bundled guide profile. Review source shots, clip planning, and conversion results side by side on a wide screen. Download all clip prompts as one TXT file, or export JSON and a reference-image ZIP. Reference mode lets each character have several images with individual roles, notes, and attachment order.
+Choose Seedance 2.0, MiniMax H3 or LTX 2.5 to apply its bundled guide profile. Review source shots, clip planning, and conversion results side by side on a wide screen. Download all clip prompts as one TXT file, or export JSON and a reference-image ZIP. Reference mode lets each character have several images with individual roles, notes, and attachment order.
 
 ![English conversion workspace showing six source shots, a 15-second clip limit, two planned clips, Seedance prompts, and TXT, JSON, and ZIP downloads](docs/screenshots/convert-en.png)
 
