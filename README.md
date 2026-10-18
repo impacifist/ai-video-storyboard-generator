@@ -6,6 +6,14 @@ A local web app for turning 1–5 character personas into an editable storyboard
 
 **v0.5.6-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
+## Finished animation example
+
+[![Two friends talking on a subway — finished animation](docs/demo/subway-conversation-poster.jpg)](https://impacifist.github.io/creative-portfolio/#video-current-case)
+
+[Watch the animation and production breakdown](https://impacifist.github.io/creative-portfolio/#video-current-case) · [Open the MP4](docs/demo/subway-conversation-web.mp4)
+
+A 30-second storyboard excerpt rendered with MiniMax H3 and edited to 27.46 seconds. Character settings become dialogue, acting and camera direction; the Japanese dialogue was reviewed and corrected by the creator. This is a rendered example, separate from the mocked UI walkthrough below.
+
 ![English storyboard workspace showing character personas, dialogue, camera direction, and a locked shot](docs/screenshots/create-en.png)
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
@@ -15,12 +23,6 @@ Define character personalities and speaking styles, then work with shot-by-shot 
 This update adds **Copy prompt** beside every converted clip, including collapsed clips and reopened results. Each button copies only that clip's prompt, with its original dialogue and line breaks. The English, Korean and Japanese guides now show matching interfaces and authored examples. Local output budgets, diagnostics, editable clip lengths, background references and 3–60-shot generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included.
 
 Screenshots use an authored English sample and mocked conversion responses. They show the real application workflow without paid AI calls; they are not a demonstration of production model quality.
-
-## LTX 2.5 conversion
-
-Choose **LTX 2.5** in Convert, then **Text → video** or **Starting image → video**. The bundled [reviewed guide](docs/guides/ltx-2.5.md) and [compiler policy](docs/guides/ltx-system.md) produce chronological English prose with quoted original dialogue, approved camera transitions and audio continuity. Per-clip copy and TXT/JSON exports work as before.
-
-For image-to-video, connect each clip's opening image in your video workflow. This app does not analyze that image or connect it to LTX nodes. Identity-reference uploads remain available for MiniMax/Seedance reference modes. The current 4–15-second planner range is an application policy, not LTX's model limit. Set actual frames/FPS in the video workflow; disable Prompt Enhance when testing the exact generated text. Prompt conversion has been tested with mocked AI; rendered video quality and seamless joins are not verified.
 
 ## Quick start
 
