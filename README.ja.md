@@ -8,9 +8,7 @@
 
 ## 完成したアニメーションの例
 
-[![電車内で会話する二人の完成アニメーション](docs/demo/subway-conversation-poster.jpg)](https://github.com/impacifist/ai-video-storyboard-generator/releases/download/v0.5.6-beta/subway-conversation.mp4)
-
-[サンプル動画をダウンロード](https://github.com/impacifist/ai-video-storyboard-generator/releases/download/v0.5.6-beta/subway-conversation.mp4) · [MP4を開く](docs/demo/subway-conversation-web.mp4)
+https://github.com/user-attachments/assets/6b739ad2-16e0-4c44-8644-3099b755de0e
 
 30秒分のストーリーボードを抜粋し、MiniMax H3で生成して27.46秒に編集した作品です。キャラクターの性格と会話の流れを、セリフ・演技・カメラの構図に落とし込みました。日本語のセリフは制作者が確認・修正しています。以下の模擬AIによる操作例とは別の、実際に生成した動画です。
 

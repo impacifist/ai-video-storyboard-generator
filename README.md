@@ -8,9 +8,7 @@ A local web app for turning 1–5 character personas into an editable storyboard
 
 ## Finished animation example
 
-[![Two friends talking on a subway — finished animation](docs/demo/subway-conversation-poster.jpg)](https://github.com/impacifist/ai-video-storyboard-generator/releases/download/v0.5.6-beta/subway-conversation.mp4)
-
-[Download the example video](https://github.com/impacifist/ai-video-storyboard-generator/releases/download/v0.5.6-beta/subway-conversation.mp4) · [Open the MP4](docs/demo/subway-conversation-web.mp4)
+https://github.com/user-attachments/assets/6b739ad2-16e0-4c44-8644-3099b755de0e
 
 A 30-second storyboard excerpt rendered with MiniMax H3 and edited to 27.46 seconds. Character settings become dialogue, acting and camera direction; the Japanese dialogue was reviewed and corrected by the creator. This is a rendered example, separate from the mocked UI walkthrough below.
 

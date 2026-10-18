@@ -8,9 +8,7 @@
 
 ## 완성 애니메이션 예시
 
-[![지하철에서 대화하는 두 친구의 완성 애니메이션](docs/demo/subway-conversation-poster.jpg)](https://github.com/impacifist/ai-video-storyboard-generator/releases/download/v0.5.6-beta/subway-conversation.mp4)
-
-[예시 영상 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/download/v0.5.6-beta/subway-conversation.mp4) · [MP4 열기](docs/demo/subway-conversation-web.mp4)
+https://github.com/user-attachments/assets/6b739ad2-16e0-4c44-8644-3099b755de0e
 
 30초 분량의 콘티를 발췌해 MiniMax H3로 제작하고 27.46초로 편집한 실제 결과입니다. 직접 정한 캐릭터 성격과 대화 흐름을 생성기로 대사·행동·카메라 연출에 반영했고, 일본어 대사는 제작자가 검수·첨삭했습니다. 아래의 모의 AI 사용 화면과 구분되는 완성 영상 사례입니다.
 
@@ -100,7 +98,6 @@ AI 생성이 실패해도 예시 결과로 자동 대체하지 않습니다.
 저장소 접근이 차단되거나 저장된 언어 코드가 유효하지 않으면 영어로 시작합니다.
 브라우저 저장소에는 언어 코드만 저장하며, 키나 콘티는 저장하지 않습니다.
 브라우저가 저장소 사용을 차단해도 현재 페이지에서는 언어를 전환할 수 있습니다.
-
 
 상단 **API 설정**에서 Ollama 주소, 제공자별 기본 모델, OpenAI·Claude 키를 등록할 수
 있습니다. 설정할 제공자를 선택하면 그 제공자의 항목만 저장하며, 다른 제공자의 입력은
