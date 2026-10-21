@@ -126,6 +126,7 @@ class ConversionRepairTests(unittest.TestCase):
             result = conversion.compile_prompts(self.document, self.payload)
         self.assertEqual(upstream.call_count, 1)
         self.assertEqual(result["validation_report"], {"attempts": 1, "repaired": False, "issues": []})
+        self.assertEqual(result["system_prompt"], upstream.call_args.args[2])
         for error in (providers.ProviderError("timeout"), ValidationError("missing API key")):
             with patch.object(providers, "generate_json", side_effect=error) as upstream:
                 with self.assertRaises(type(error)):

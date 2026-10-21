@@ -282,7 +282,7 @@ def compile_prompts(document, payload):
             "references": assets, "guide_id": selected_guide["id"] if selected_guide else "custom",
             "guide_sha256": selected_guide["sha256"] if selected_guide else None,
             "guide_checked_at": selected_guide["checked_at"] if selected_guide else None,
-            "system_prompt": system_prompt, "scope": scope,
+            "system_prompt": system_prompt + "\nSHOT IDENTITY CONTRACT: " + conversion_structure.RULES, "scope": scope,
             "assembly_version": 8, "output_language": "english_except_dialogue", "dialogue_manifest": dialogue_manifest,
             "english_reference_notes": draft["reference_notes"],
             "render_labels": prompt_renderer.render_labels(document),
