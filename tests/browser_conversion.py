@@ -264,6 +264,24 @@ def main():
             assert page.evaluate("conversionResult.validation_report.repaired")
             persisted = page.request.post(f"http://127.0.0.1:{server.server_port}/api/library/load", data={"id": saved["saved"]["id"]}).json()
             assert persisted["conversions"][0]["result"]["validation_report"]["repaired"]
+            # An exact-ID permutation needs no extra AI call and is visible after saving.
+            def reorder_only(provider, model, system, user, schema):
+                data = json.loads(user)
+                assert "shot_contract" in data
+                draft = direction_output(data["plan"], data["references"])
+                draft["clips"].reverse()
+                for clip in draft["clips"]:
+                    clip["shots"].reverse()
+                return draft
+
+            upstream.side_effect = reorder_only
+            before_calls = upstream.call_count
+            page.locator("#conversion-run").click()
+            expect(page.locator("#conversion-results")).to_contain_text("원본 ID에 맞춰 클립·컷 순서를 복원했습니다.")
+            assert upstream.call_count == before_calls + 1
+            assert page.evaluate("conversionResult.validation_report.reordered_by_id.length > 0")
+            persisted = page.request.post(f"http://127.0.0.1:{server.server_port}/api/library/load", data={"id": saved["saved"]["id"]}).json()
+            assert persisted["conversions"][0]["result"]["validation_report"]["reordered_by_id"]
             upstream.side_effect = fake_compile
             assert page.evaluate("conversionResult.boundary_states.length") == 1
             page.locator("#conversion-speech-plan").click()
@@ -275,7 +293,7 @@ def main():
             page.locator("#conversion-run").click()
             expect(page.locator("#notice")).to_contain_text("프롬프트를 변환해 보관")
             assert page.evaluate("conversionResult.plan.clips.length") == 5
-            assert upstream.call_count == 5
+            assert upstream.call_count == 6
             for language in ("ko", "en", "ja"):
                 page.evaluate("lang => I18n.select(lang)", language)
                 for width in (2560, 1920, 1440, 768, 390, 320):
