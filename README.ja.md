@@ -4,7 +4,7 @@
 
 キャラクターの性格や話し方から、編集可能なストーリーボードを作成するローカルWebアプリです。登場人物は1〜5人まで設定でき、選んだカットをSeedance 2.0、MiniMax H3、LTX 2.5向けの動画プロンプトに変換できます。
 
-**v0.5.7-beta** — PC上で動かすダウンロード版です。作成するのはテキストのストーリーボードとプロンプトです。動画の生成や、カットごとのイラスト作成は含まれません。
+**v0.5.8-beta** — PC上で動かすダウンロード版です。作成するのはテキストのストーリーボードとプロンプトです。動画の生成や、カットごとのイラスト作成は含まれません。
 
 正常な生成結果のカット数だけが指定と異なる場合、指定数・生成数・長さ・内容を確認して、**この結果を使う**か**再生成**を選べます。使用する場合は追加のAI呼び出しなしで実際のカット数を反映し、選択を履歴に記録します。再生成に失敗しても前の結果は保持されます。選択前にJSONで保存することもできます。不完全な分割生成、不正な人物・ID、固定カットの欠落は引き続きエラーになります。選択前の結果は現在の画面内に保持されるため、再読み込み前に使用するかJSONで保存してください。
 
@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/6b739ad2-16e0-4c44-8644-3099b755de0e
 
 キャラクターの性格と話し方を設定すると、カットごとの動作、セリフ、カメラ演出、場面の連続性を検討できます。生成後は各カットを編集でき、残したいカットを固定してから再生成することもできます。
 
-[ベータ版をダウンロード](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.7-beta) · [更新内容](docs/releases/v0.5.7-beta.md) · [日本語サンプルのストーリーボード](examples/before-the-rain-stops.ja.storyboard.json) · [変換済みプロンプトの例](examples/before-the-rain-stops.ja.prompts.txt)
+[ベータ版をダウンロード](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.8-beta) · [更新内容](docs/releases/v0.5.8-beta.md) · [日本語サンプルのストーリーボード](examples/before-the-rain-stops.ja.storyboard.json) · [変換済みプロンプトの例](examples/before-the-rain-stops.ja.prompts.txt)
 
 このバージョンでは、LM Studioに加え、OllamaとローカルのOpenAI互換接続でも出力トークン上限を設定できます。リクエストの診断ログ、応答の打ち切りや推論予算に関する案内、クリップの長さの調整、背景参照画像、最大60カットの分割生成にも対応しています。ローカルLLMには固定のソケット待機時間制限を設けていません。[カメラ技法75選と参考画像（韓国語）](docs/assets/camera-techniques-ko/README.md)も同梱しています。
 
