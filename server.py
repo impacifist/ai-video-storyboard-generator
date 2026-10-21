@@ -155,13 +155,12 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(providers.save_settings(payload))
                 finally:
                     BUSY.release()
-            elif self.path == "/api/generate":
+            elif self.path in ("/api/generate", "/api/generation/accept"):
                 if not BUSY.acquire(blocking=False):
                     self.send_json({"error": "다른 생성·검수가 진행 중입니다."}, 409)
                     return
                 try:
-                    document = engine.generate(payload)
-                    self.send_json({"document": document, "review": engine.review(document)})
+                    self.send_json(engine.accept_generation(payload) if self.path.endswith("/accept") else engine.generate_response(payload))
                 finally:
                     BUSY.release()
             elif self.path == "/api/validate":

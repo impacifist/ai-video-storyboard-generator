@@ -16,6 +16,8 @@ A 30-second storyboard excerpt rendered with MiniMax H3 and edited to 27.46 seco
 
 Define character personalities and speaking styles, then work with shot-by-shot action, dialogue, camera direction, and continuity states. Edit individual shots and lock the ones you want to keep during regeneration.
 
+If a complete, valid generation returns a different shot count, review **Requested / Generated** counts and the draft before choosing **Use this draft** or **Generate again**. Acceptance updates the shot count and records your choice without another AI request. A failed retry keeps the previous draft available. You can download the draft JSON before deciding. Incomplete batches, invalid characters/IDs and missing locked shots remain errors; this choice does not bypass validation. Unaccepted drafts stay in the current page session: use or download them before refreshing.
+
 [Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.7-beta) · [Release notes](docs/releases/v0.5.7-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
 This update adds **Copy prompt** beside every converted clip, including collapsed clips and reopened results. Each button copies only that clip's prompt, with its original dialogue and line breaks. The English, Korean and Japanese guides now show matching interfaces and authored examples. Local output budgets, diagnostics, editable clip lengths, background references and 3–60-shot generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included.
