@@ -2,7 +2,7 @@
 
 [English](README.md) · 한국어 · [日本語](README.ja.md)
 
-[v0.5.6-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.6-beta) · [업데이트 내역](docs/releases/v0.5.6-beta.md)
+[v0.5.7-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.7-beta) · [업데이트 내역](docs/releases/v0.5.7-beta.md)
 
 이번 업데이트는 변환 결과의 각 클립 옆에 **프롬프트 복사** 버튼을 추가합니다. 접힌 클립이나 다시 불러온 결과에서도 해당 클립의 프롬프트만 원문 대사·줄바꿈과 함께 복사합니다. 영어·한국어·일본어 설명서의 화면과 예시도 각 언어에 맞췄습니다. 로컬 AI 출력 한도·진단 로그·클립 길이 조절·배경 참조·최대 60컷 생성과 [카메라 기법 75선 및 한국어 참고 이미지](docs/assets/camera-techniques-ko/README.md)는 유지됩니다.
 
