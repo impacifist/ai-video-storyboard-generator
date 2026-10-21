@@ -105,22 +105,59 @@ def main():
             expect(page.locator("#notice")).to_contain_text("이미지 사용 여부")
             upstream.assert_not_called()
             files = [{"name": f"image-{i}.png", "mimeType": "image/png", "buffer": PNG} for i in range(3)]
-            page.locator("#reference-characters input").first.set_input_files(files)
+            page.locator("#reference-files").set_input_files(files)
             expect(page.locator(".reference-card")).to_have_count(3)
-            page.locator("#reference-characters input").nth(1).set_input_files(files[:1])
+            page.locator("#reference-target").select_option(page.evaluate("conversionBoard.brief.characters[1].id"))
+            page.locator("#reference-files").set_input_files(files[:1])
             expect(page.locator(".reference-card")).to_have_count(4)
-            page.locator("#reference-background input").set_input_files(files[:1])
+            page.locator('[data-reference-kind="background"]').click()
+            page.locator("#reference-files").set_input_files(files[:1])
             expect(page.locator(".reference-card")).to_have_count(5)
-            expect(page.locator(".reference-card strong").last).to_contain_text("배경")
+            expect(page.locator('.reference-group[data-kind="background"] > summary')).to_contain_text("배경")
             assert page.locator(".reference-card select").last.input_value() == "environment"
             assert page.locator(".reference-card select").first.input_value() == "appearance"
             expect(page.locator(".reference-extra").first).not_to_have_attribute("open", "")
             expect(page.locator("#reference-count")).to_contain_text("5/9")
+            expect(page.locator('.reference-group[data-kind="character"]')).to_have_count(2)
             page.locator(".reference-extra summary").last.click()
             page.locator(".reference-card textarea").last.fill("Seats under the windows; doors at the end of the aisle.")
+            page.locator('.reference-group[data-kind="character"] > summary').first.click()
             page.locator(".reference-card select").first.select_option("body")
             page.locator(".reference-extra summary").first.click()
             page.locator(".reference-card textarea").first.fill("Only outfit. 원문 유지。")
+            page.locator('[data-reference-kind="prop"]').click()
+            page.locator("#reference-target-name").fill("소라의 휴대폰")
+            page.locator("#reference-owner").select_option(page.evaluate("conversionBoard.brief.characters[0].id"))
+            page.locator("#reference-files").set_input_files(files[:1])
+            with page.expect_file_chooser() as choosing:
+                page.locator('.reference-group[data-kind="prop"] > summary button').click()
+            choosing.value.set_files(files[1:2])
+            expect(page.locator('.reference-group[data-kind="prop"] .reference-card')).to_have_count(2)
+            scope = page.locator('.reference-group[data-kind="prop"] .reference-scope')
+            scope.locator("summary").click()
+            scope.locator("select").select_option("selected")
+            assert page.evaluate("referenceItems.filter(a => a.kind === 'prop').every(a => a.shot_ids.join() === 'S01')")
+            page.locator('[data-reference-kind="other"]').click()
+            page.locator("#reference-target-name").fill("조명")
+            page.locator("#reference-files").set_input_files(files[:1])
+            expect(page.locator("#notice")).to_contain_text("필수 항목")
+            expect(page.locator("#reference-count")).to_contain_text("7/9")
+            page.locator("#reference-usage").fill("따뜻한 역광과 색감만 참고")
+            page.locator("#reference-files").set_input_files(files[:1])
+            expect(page.locator("#reference-count")).to_contain_text("8/9")
+            page.locator("#reference-panel").screenshot(path=str(ROOT / "storage/browser-check/references-four-types-ko.png"))
+            for lang, caption in (("en", "Prop"), ("ja", "小物")):
+                page.evaluate("lang => I18n.select(lang)", lang)
+                expect(page.locator('[data-reference-kind="prop"]')).to_have_text(caption)
+                for width in (320, 390, 768, 1440):
+                    page.set_viewport_size({"width": width, "height": 1000})
+                    if not page.evaluate("document.documentElement.scrollWidth <= innerWidth"):
+                        page.screenshot(path=str(ROOT / "storage/browser-check/reference-overflow.png"), full_page=True)
+                        print(page.evaluate("[...document.querySelectorAll('#reference-panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).map(e => [e.tagName, e.id, e.className, Math.round(e.getBoundingClientRect().width)]).slice(0, 12)"))
+                        raise AssertionError((lang, width))
+                page.locator("#reference-panel").screenshot(path=str(ROOT / f"storage/browser-check/references-four-types-{lang}.png"))
+            page.evaluate("I18n.select('ko')")
+            page.locator('.reference-group[data-kind="character"] > summary').first.click()
             page.locator(".reference-card").first.get_by_role("button", name="뒤로", exact=True).click()
             page.locator("#references-save").click()
             expect(page.locator("#notice")).to_have_text("참조 설정을 저장했습니다.")
@@ -161,6 +198,8 @@ def main():
             assert "0–15" in self_text and "15–30" in self_text and "<Picture 4>" in self_text
             assembled_lines = page.evaluate("conversionResult.dialogue_manifest.map(d => d.text)")
             assert assembled_lines and all(line in self_text for line in assembled_lines)
+            assert "Prop 1 (Phone)" in self_text and "Visual reference 1 (Lighting)" in self_text
+            assert "undefined" not in self_text
             directions_only = self_text
             for line in assembled_lines:
                 directions_only = directions_only.replace(line, "")
@@ -178,14 +217,14 @@ def main():
             with zipfile.ZipFile(io.BytesIO(response.body())) as archive:
                 assert archive.read("video-prompts.txt").decode("utf-8").replace("\r\n", "\n") == self_text
                 manifest = json.loads(archive.read("manifest.json"))
-                assert len(manifest) == 5 and manifest[0]["label"] == "<Picture 1>"
+                assert len(manifest) == 8 and manifest[0]["label"] == "<Picture 1>"
                 assert manifest[4]["role"] == "environment" and manifest[4]["label"] == "<Picture 5>"
                 assert archive.read(manifest[0]["file"]) == PNG
             page.reload()
             page.locator("#nav-convert").click()
             page.get_by_role("button", name="이 콘티 선택", exact=True).click()
             page.locator("#video-guide").select_option("reference")
-            expect(page.locator(".reference-card")).to_have_count(5)
+            expect(page.locator(".reference-card")).to_have_count(8)
             expect(page.locator(".reference-card textarea").nth(1)).to_have_value("Only outfit. 원문 유지。")
             page.locator("#conversion-consent").check()
             page.locator("#conversion-run").click()

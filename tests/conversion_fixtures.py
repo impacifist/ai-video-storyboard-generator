@@ -15,7 +15,7 @@ def direction_output(layout, assets=()):
     return {"warnings": [], "notes": [], "boundaries": boundaries,
         "handoffs": [{"id": h["id"], "bridge": "Continue the approved gesture and response at the same conversational pace.",
                       "sound_bridge": "Keep the established room ambience continuous."} for h in layout.get("handoffs", [])],
-        "reference_notes": [{"label": a["label"], "note": "Preserve the specified reference attributes." if a["note"] else ""} for a in assets], "clips": [{
+        "reference_notes": [{"label": a["label"], "target_name": "Phone" if a.get("kind") == "prop" else "Lighting" if a.get("kind") == "other" else "", "note": "Preserve the specified reference attributes." if a["note"] else ""} for a in assets], "clips": [{
         "id": clip["id"], "context": "A quiet classroom; consistent lighting and character identity.",
         "subject_definitions": "Preserve the supplied character identities.", "summary": "A restrained interaction.",
         "retention_analysis": "Preserve facial identity and clothing from assigned references.",
