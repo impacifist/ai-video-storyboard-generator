@@ -2,7 +2,7 @@
 
 [English](README.md) · 한국어 · [日本語](README.ja.md)
 
-[v0.5.8-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.8-beta) · [업데이트 내역](docs/releases/v0.5.8-beta.md)
+[v0.5.9-beta 다운로드](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.9-beta) · [업데이트 내역](docs/releases/v0.5.9-beta.md)
 
 정상적인 생성 결과의 컷 수만 요청과 다르면 **요청 컷 수·생성 컷 수·길이·내용**을 확인하고 **이 결과 사용** 또는 **다시 생성**을 선택할 수 있습니다. 사용을 선택하면 실제 컷 수를 반영하고 차이를 이력에 기록하며 AI를 추가 호출하지 않습니다. 다시 생성에 실패해도 이전 초안은 남고, 선택 전 JSON으로 내려받을 수 있습니다. 불완전한 분할 생성·잘못된 인물/ID·고정 컷 누락은 계속 오류로 처리합니다. 선택 전 초안은 현재 화면에만 유지되므로 새로고침 전에는 사용하거나 JSON으로 저장하세요.
 
