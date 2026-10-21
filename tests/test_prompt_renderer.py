@@ -106,8 +106,8 @@ class PromptRendererTests(unittest.TestCase):
                 self.assertIn(text, output["clips"][0]["prompt"])
             prompt = output["clips"][0]["prompt"]
             if key == "minimax-h3-text":
-                self.assertIn("(S1) Character 2", prompt)
-                self.assertIn("(S2) Character 1", prompt)
+                self.assertIn("Character 2 (S1)", prompt)
+                self.assertIn("Character 1 (S2)", prompt)
                 self.assertEqual(prompt.count("<d>"), len([d for d in manifest if d["clip_id"] == "C01"]))
                 self.assertIn("[Shot 2] At 00:05.000,", prompt)
             self.assertNotIn("prompt", draft["clips"][0])

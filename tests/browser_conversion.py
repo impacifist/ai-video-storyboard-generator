@@ -113,8 +113,13 @@ def main():
             expect(page.locator(".reference-card")).to_have_count(5)
             expect(page.locator(".reference-card strong").last).to_contain_text("배경")
             assert page.locator(".reference-card select").last.input_value() == "environment"
+            assert page.locator(".reference-card select").first.input_value() == "appearance"
+            expect(page.locator(".reference-extra").first).not_to_have_attribute("open", "")
+            expect(page.locator("#reference-count")).to_contain_text("5/9")
+            page.locator(".reference-extra summary").last.click()
             page.locator(".reference-card textarea").last.fill("Seats under the windows; doors at the end of the aisle.")
             page.locator(".reference-card select").first.select_option("body")
+            page.locator(".reference-extra summary").first.click()
             page.locator(".reference-card textarea").first.fill("Only outfit. 원문 유지。")
             page.locator(".reference-card").first.get_by_role("button", name="뒤로", exact=True).click()
             page.locator("#references-save").click()
@@ -124,7 +129,7 @@ def main():
             assert page.evaluate("JSON.stringify(referenceItems)") == before
             page.evaluate("I18n.select('ko')")
             page.locator("#video-family").select_option("minimax")
-            expect(page.locator(".reference-card strong").first).to_contain_text("<Picture 1>")
+            expect(page.locator(".reference-card .reference-attachment").first).to_contain_text("<Picture 1>")
             for checkbox in page.locator("#conversion-shots input").all()[3:]:
                 checkbox.uncheck()
             page.locator("#official-guide-preview > summary").click()

@@ -20,7 +20,7 @@ def direction_output(layout, assets=()):
         "subject_definitions": "Preserve the supplied character identities.", "summary": "A restrained interaction.",
         "retention_analysis": "Preserve facial identity and clothing from assigned references.",
         "shots": [{"id": shot["id"], "direction": "Follow the planned action with subtle expressions.", "pacing_weight": 1,
-                   "speech_cues": ["Begin the assigned line with the approved gesture or response." for _ in shot["source"]["dialogue"]],
+                   "speech_cues": [{"speaker": line["speaker"], "mode": "unspecified", "onset": "Begin the assigned line with the approved gesture or response."} for line in shot["source"]["dialogue"]],
                    "camera": {"size": "Medium shot", "angle": "Eye level", "movement": "Locked camera",
                               "transition": "Cut on the reaction", "layout": "Character 1 on the left, Character 2 on the right."},
                    "dialogue_language": "Korean", "deliveries": ["Very quietly" if line["delivery"] else "" for line in shot["source"]["dialogue"]]} for shot in clip["shots"]],

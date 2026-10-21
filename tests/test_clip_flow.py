@@ -54,7 +54,7 @@ class ClipFlowTests(unittest.TestCase):
             for clip in draft["clips"]:
                 clip["shots"][0]["pacing_weight"] = 4
                 clip["shots"][1]["pacing_weight"] = .1
-                clip["shots"][0]["speech_cues"] = ["Begin as the existing hand gesture continues toward the listener."]
+                clip["shots"][0]["speech_cues"][0]["onset"] = "Begin as the existing hand gesture continues toward the listener."
             return draft
 
         with patch("storyboard.providers.generate_json", side_effect=fake) as ai:
@@ -68,7 +68,7 @@ class ClipFlowTests(unittest.TestCase):
             self.assertEqual(tail["end"], 13)
             self.assertEqual([s["id"] for s in original["shots"]], [s["id"] for s in final["shots"]])
         self.assertEqual([line["text"] for line in result["dialogue_manifest"]], ["あ" * 20] * 3)
-        self.assertIn("Speech onset: Begin as", result["output"]["clips"][0]["prompt"])
+        self.assertIn(": Begin as the existing hand gesture", result["output"]["clips"][0]["prompt"])
         self.assertNotIn("Timing: 0", result["output"]["clips"][0]["prompt"])
 
     def test_matching_connection_is_inserted_on_both_sides_but_not_at_final_ending(self):
@@ -118,7 +118,7 @@ class ClipFlowTests(unittest.TestCase):
             if issue == "handoff":
                 draft["handoffs"] = []
             elif issue == "cue":
-                draft["clips"][0]["shots"][0]["speech_cues"] = ["갑자기 말한다"]
+                draft["clips"][0]["shots"][0]["speech_cues"][0]["onset"] = "갑자기 말한다"
             else:
                 draft["clips"][0]["shots"][0]["pacing_weight"] = -1
             with self.assertRaises(ValidationError):

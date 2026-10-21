@@ -97,6 +97,30 @@ class GuideReferencesTests(unittest.TestCase):
         self.assertEqual(manifest[0]["note"], "Costume only")
         self.assertEqual(len({a["character_id"] for a in manifest}), 1)
 
+    def test_simple_reference_defaults_compile_without_notes_and_preserve_explicit_notes(self):
+        images = [self.upload(), self.upload()]
+        self.assertTrue(all(image["role"] == "appearance" and image["note"] == "" for image in images))
+        images[1].update(role="face", note="Use only the hairstyle.")
+        references.save(self.key, images)
+        self.payload["references"] = references.load(self.key)
+
+        def generate(provider, model, system, user, schema):
+            request = json.loads(user)
+            binding = next(b for b in request["character_bindings"] if b["speaker"] == self.char)
+            self.assertEqual(binding["pictures"], ["<Picture 1>", "<Picture 2>"])
+            self.assertEqual(request["references"][0]["guidance"], references.ROLE_GUIDANCE["appearance"])
+            draft = direction_output(request["plan"], request["references"])
+            draft["reference_notes"][1]["note"] = "Use only the hairstyle."
+            return draft
+
+        with patch("storyboard.providers.generate_json", side_effect=generate):
+            result = conversion.compile_prompts(self.doc, self.payload)
+        for clip in result["output"]["clips"]:
+            self.assertIn(references.ROLE_GUIDANCE["appearance"], clip["prompt"])
+            self.assertIn("Use only the hairstyle.", clip["prompt"])
+            self.assertNotIn(references.ROLE_GUIDANCE["face"], clip["prompt"])
+        self.assertEqual(references.load(self.key)[1]["note"], "Use only the hairstyle.")
+
     def test_background_references_persist_compile_and_export_for_both_models(self):
         images = [self.upload(), self.upload(kind="background", character_id="")]
         images[1]["note"] = "좌석은 창문 아래, 문은 통로 끝."
@@ -132,7 +156,7 @@ class GuideReferencesTests(unittest.TestCase):
     def test_background_cannot_be_reassigned_to_character_and_legacy_upload_stays_character(self):
         character = self.upload()
         background = self.upload(kind="background", character_id="")
-        self.assertEqual(character["role"], "face")
+        self.assertEqual(character["role"], "appearance")
         for image, role in ((character, "environment"), (background, "face")):
             with self.assertRaises(ValidationError):
                 references.save(self.key, [{**image, "role": role}])
