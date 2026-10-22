@@ -4,7 +4,7 @@ English · [한국어](README.ko.md) · [日本語](README.ja.md)
 
 A local web app for turning 1–5 character personas into an editable storyboard, then converting selected shots into video prompts for Seedance 2.0, MiniMax H3 or LTX 2.5.
 
-**v0.5.9-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
+**v0.5.10-beta** — a downloadable local application. It creates text storyboards and prompts; video generation and illustrated storyboard panels are not included.
 
 ## Finished animation example
 
@@ -18,7 +18,7 @@ Define character personalities and speaking styles, then work with shot-by-shot 
 
 If a complete, valid generation returns a different shot count, review **Requested / Generated** counts and the draft before choosing **Use this draft** or **Generate again**. Acceptance updates the shot count and records your choice without another AI request. A failed retry keeps the previous draft available. You can download the draft JSON before deciding. Incomplete batches, invalid characters/IDs and missing locked shots remain errors; this choice does not bypass validation. Unaccepted drafts stay in the current page session: use or download them before refreshing.
 
-[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.9-beta) · [Release notes](docs/releases/v0.5.9-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
+[Download the beta](https://github.com/impacifist/ai-video-storyboard-generator/releases/tag/v0.5.10-beta) · [Release notes](docs/releases/v0.5.10-beta.md) · [Try the sample storyboard](examples/before-the-rain-stops.storyboard.json) · [Read its exported prompts](examples/before-the-rain-stops.prompts.txt)
 
 This update adds **Copy prompt** beside every converted clip, including collapsed clips and reopened results. Each button copies only that clip's prompt, with its original dialogue and line breaks. The English, Korean and Japanese guides now show matching interfaces and authored examples. Local output budgets, diagnostics, editable clip lengths, background references and 3–60-shot generation remain available. The [75 camera techniques and Korean reference posters](docs/assets/camera-techniques-ko/README.md) are included.
 
