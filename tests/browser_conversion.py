@@ -282,6 +282,25 @@ def main():
             assert page.evaluate("conversionResult.validation_report.reordered_by_id.length > 0")
             persisted = page.request.post(f"http://127.0.0.1:{server.server_port}/api/library/load", data={"id": saved["saved"]["id"]}).json()
             assert persisted["conversions"][0]["result"]["validation_report"]["reordered_by_id"]
+            translation_calls = []
+
+            def translate_only(provider, model, system, user, schema):
+                data = json.loads(user)
+                translation_calls.append(data)
+                if "instruction_translations" in data:
+                    assert "plan" not in data and "previous_output" not in data
+                    return {"translations": {item["key"]: "With concern" for item in data["instruction_translations"]}}
+                draft = direction_output(data["plan"], data["references"])
+                draft["clips"][0]["shots"][0]["deliveries"][0] = "걱정스럽게"
+                return draft
+
+            upstream.side_effect = translate_only
+            page.locator("#conversion-run").click()
+            expect(page.locator("#conversion-results")).to_contain_text("영어로 변환되지 않은 지시문 1개만 교정")
+            assert len(translation_calls) == 2
+            assert page.evaluate("conversionResult.validation_report.repair_kind") == "instruction_translation"
+            persisted = page.request.post(f"http://127.0.0.1:{server.server_port}/api/library/load", data={"id": saved["saved"]["id"]}).json()
+            assert persisted["conversions"][0]["result"]["validation_report"]["translated_fields"] == ["clips.C01.shots[0].deliveries[0]"]
             upstream.side_effect = fake_compile
             assert page.evaluate("conversionResult.boundary_states.length") == 1
             page.locator("#conversion-speech-plan").click()
@@ -293,7 +312,7 @@ def main():
             page.locator("#conversion-run").click()
             expect(page.locator("#notice")).to_contain_text("프롬프트를 변환해 보관")
             assert page.evaluate("conversionResult.plan.clips.length") == 5
-            assert upstream.call_count == 6
+            assert upstream.call_count == 8
             for language in ("ko", "en", "ja"):
                 page.evaluate("lang => I18n.select(lang)", language)
                 for width in (2560, 1920, 1440, 768, 390, 320):

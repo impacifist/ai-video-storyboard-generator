@@ -144,11 +144,13 @@ class ConversionRepairTests(unittest.TestCase):
     def test_non_english_directions_are_translated_by_the_same_bounded_repair(self):
         invalid = copy.deepcopy(self.valid)
         invalid["clips"][0]["shots"][0]["direction"] = "ゆっくり振り返る。"
-        with patch.object(providers, "generate_json", side_effect=[invalid, self.valid]) as upstream:
+        translated = {"translations": {"T001": "Slowly turn around."}}
+        with patch.object(providers, "generate_json", side_effect=[invalid, translated]) as upstream:
             result = conversion.compile_prompts(self.document, self.payload)
         self.assertEqual(upstream.call_count, 2)
         self.assertIn("English-only", result["validation_report"]["issues"][0])
         self.assertEqual(result["output_language"], "english_except_dialogue")
+        self.assertEqual(result["validation_report"]["repair_kind"], "instruction_translation")
 
 
 if __name__ == "__main__":
