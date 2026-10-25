@@ -180,11 +180,15 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             validate_story(response, brief())
 
-    def test_continuity_review_checks_following_cut_after_edit(self):
+    def test_state_description_differences_do_not_emit_literal_continuity_warning(self):
         doc = document()
         doc["story"]["shots"][0]["end_state"]["characters"][0]["position"] = "출입문"
+        doc["story"]["shots"][0]["end_state"]["props"] = [{"name": "phone", "holder": "", "position": "on the desk"}]
+        before = copy.deepcopy(doc)
         result = engine.review(doc)
-        self.assertTrue(any(f["category"] == "연속성" and f["shot_id"] == "S02" for f in result["findings"]))
+        self.assertFalse(any(f["category"] == "연속성" for f in result["findings"]))
+        self.assertEqual(doc, before)
+        self.assertTrue(result["structure_valid"])
 
     def test_state_order_does_not_create_false_continuity_warning(self):
         doc = document()
