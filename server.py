@@ -135,6 +135,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok": True})
             elif self.path == "/api/conversion/plan":
                 self.send_json({"plan": conversion.preflight(library.load(payload.get("id")), payload)[0]})
+            elif self.path == "/api/conversion/request":
+                self.send_json(conversion.preview_request(library.load(payload.get("id")), payload))
             elif self.path == "/api/conversion/compile":
                 if not BUSY.acquire(blocking=False):
                     self.send_json({"error": "다른 생성·검수가 진행 중입니다."}, 409)
