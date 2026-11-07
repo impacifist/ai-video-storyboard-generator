@@ -71,16 +71,14 @@ class ClipFlowTests(unittest.TestCase):
         self.assertIn(": Begin as the existing hand gesture", result["output"]["clips"][0]["prompt"])
         self.assertNotIn("Timing: 0", result["output"]["clips"][0]["prompt"])
 
-    def test_matching_connection_is_inserted_on_both_sides_but_not_at_final_ending(self):
+    def test_directional_scopes_are_different_on_each_side_and_absent_at_final_ending(self):
         plan = conversion.preflight(self.doc, self.payload)[0]
         draft = direction_output(plan)
-        draft["handoffs"][0]["bridge"] = "Carry the lifted-hand response across the approved edit."
         output, _ = prompt_renderer.assemble(self.doc, plan, draft, guides.profile("minimax-h3-text"), [])
-        text = draft["handoffs"][0]["bridge"]
-        self.assertIn(text, output["clips"][0]["prompt"])
-        self.assertIn(text, output["clips"][1]["prompt"])
-        self.assertIn("not a scene ending", output["clips"][0]["prompt"])
-        self.assertNotIn("Outgoing connection", output["clips"][-1]["prompt"])
+        self.assertIn("Clip end scope H01", output["clips"][0]["prompt"])
+        self.assertIn("Clip start scope H01", output["clips"][1]["prompt"])
+        self.assertNotIn("Clip start scope H01", output["clips"][0]["prompt"])
+        self.assertNotIn("Clip end scope", output["clips"][-1]["prompt"])
 
     def test_continuation_cut_scene_change_and_selection_gap_are_distinct(self):
         self.doc["story"]["shots"][0]["duration"] = 20

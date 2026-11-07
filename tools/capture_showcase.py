@@ -213,9 +213,7 @@ def mock_director(provider, model, system, user, schema):
             "overall_soundscape": "Soft rain against the window, subtle fabric and footsteps.",
             "non_diegetic_music": "None; leave space for the pauses.",
         })
-    return {"warnings": [], "notes": [], "boundaries": [], "reference_notes": [], "clips": clips,
-            "handoffs": [{"id": h["id"], "bridge": "Continue the gesture and response at the same conversational pace.",
-                          "sound_bridge": "Keep the rain and room ambience continuous."} for h in request["plan"].get("handoffs", [])]}
+    return {"warnings": [], "notes": [], "boundaries": [], "reference_notes": [], "clips": clips}
 
 
 def main():

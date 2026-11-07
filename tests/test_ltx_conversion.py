@@ -54,7 +54,7 @@ class LTXConversionTests(unittest.TestCase):
                 self.assertIn('says in Japanese, Very quietly: "まだ降ってるね。"', prompts[0])
                 self.assertIn("transitions as follows", prompts[0])
                 self.assertIn("without a cut or replay", prompts[1])
-                self.assertIn("without an added pause", prompts[0])
+                self.assertIn("do not execute actions reserved for a later interval", prompts[0])
                 for prompt in prompts:
                     for forbidden in ("[Shot", "<d>", "<Picture", "<Subject", "Incoming connection", "shared boundary", "00:"):
                         self.assertNotIn(forbidden, prompt)
