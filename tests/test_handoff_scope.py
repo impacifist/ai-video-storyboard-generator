@@ -29,9 +29,14 @@ class HandoffScopeTests(unittest.TestCase):
         draft['clips'][1]['shots'][0]['direction'] = future
         draft['clips'][0]['shots'][0]['camera']['transition'] = 'Match cut on the cup'
         original = copy.deepcopy(layout)
-        for target in ('minimax-h3-text', 'seedance-2-text', 'ltx-2.5-text'):
+        for target in guides.PROFILES:
             with self.subTest(target=target):
-                output, _ = prompt_renderer.assemble(self.doc, layout, draft, guides.profile(target), [])
+                assets = ([{'character_id': self.doc['brief']['characters'][0]['id'],
+                            'label': '<Picture 1>' if target.startswith('minimax') else 'Image 1',
+                            'note': '', 'role': 'face'}] if target.endswith('reference') else [])
+                directed = copy.deepcopy(draft)
+                directed['reference_notes'] = [{'label': a['label'], 'target_name': '', 'note': ''} for a in assets]
+                output, _ = prompt_renderer.assemble(self.doc, layout, directed, guides.profile(target), assets)
                 first, second = [c['prompt'] for c in output['clips']]
                 self.assertIn(current, first)
                 self.assertIn('Match cut on the cup', first)

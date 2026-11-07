@@ -5,8 +5,10 @@ from .schema import ValidationError
 POLICY = (
     "CONNECTION OWNERSHIP: plan.handoffs is input metadata only. Do not return handoffs, bridge or "
     "sound_bridge fields. The application adds different incoming/outgoing scope rules. Each concrete "
-    "movement belongs only to its assigned shot direction; clip context, summary, audio and closing "
-    "camera transition must not execute a later clip's action. An inherited state is already established, "
+    "movement belongs only to its assigned shot direction; clip context, summary, subject definitions, "
+    "reference retention, audio and closing camera transition must not execute a later clip's action. "
+    "Subject definitions and reference retention describe identity and appearance, not future behavior. "
+    "An inherited state is already established, "
     "not an instruction to perform the establishing action again. Preserve approved cuts and scene changes."
 )
 
