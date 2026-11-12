@@ -18,6 +18,7 @@ from storyboard import engine, library, providers  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 BRIEF = json.loads((ROOT / "examples/rainy-classroom.json").read_text(encoding="utf-8"))
 CALLS = []
+DIRECTION_REQUESTS = []
 
 
 def fake_upstream(url, payload, headers):
@@ -26,6 +27,9 @@ def fake_upstream(url, payload, headers):
         source = json.loads(payload["input"])
     else:
         source = json.loads(payload["messages"][-1]["content"])
+    revision = source.get("revision_request", "")
+    if "[컷별 연출 지시]" in revision:
+        DIRECTION_REQUESTS.append(revision)
     if source.get("task") == "storyboard_outline":
         story = engine.demo_story(source["brief"])
         result = {**{k: story[k] for k in ("summary", "beats", "assumptions")},
@@ -117,12 +121,20 @@ def main():
             assert not CALLS, "Missing input must not call AI"
             page.locator('[name="location"]').fill("방과 후의 교실")
             page.locator("#tab-direction").click()
-            page.locator('[name="ending"]').fill("")
+            page.locator("#story-direction-combined").fill("")
             page.locator("#tab-cast").click()
             page.locator("#generate").click()
-            expect(page.locator("#notice")).to_contain_text("원하는 결말 항목을 입력해주세요")
+            expect(page.locator("#notice")).to_contain_text("이야기 전개와 결말 항목을 입력해주세요")
             expect(page.locator("#direction-panel")).to_be_visible()
-            expect(page.locator('[name="ending"]')).to_be_focused()
+            expect(page.locator("#story-direction-combined")).to_be_focused()
+            page.locator("#story-direction-combined").fill("서로 마음을 확인하고 함께 교실을 나선다.\n마지막에 우산을 함께 쓴다.")
+            expect(page.locator('[name="intent"]')).to_have_value("서로 마음을 확인하고 함께 교실을 나선다.\n마지막에 우산을 함께 쓴다.")
+            expect(page.locator('[name="ending"]')).to_have_value("마지막에 우산을 함께 쓴다.")
+            page.locator(".shot-directions-advanced > summary").click()
+            page.locator(".shot-directions-list textarea").nth(0).fill("하루가 소매 끝을 만지며 망설인다.")
+            page.locator(".shot-directions-list textarea").nth(2).fill("유나가 우산을 내민다.")
+            page.wait_for_timeout(250)
+            assert page.evaluate("Object.entries(localStorage).some(([k, v]) => k.startsWith('persona-storyboard.shot-directions:') && v.includes('망설인다'))")
             page.locator("#try-demo").click()
             expect(page.locator(".shot")).to_have_count(6)
             expect(page.locator("#source")).to_have_text("예시 템플릿")
@@ -159,6 +171,12 @@ def main():
             assert "수동 편집한 화면" in markdown_path.read_text(encoding="utf-8")
             page.locator("#file").set_input_files(saved)
             expect(page.locator("#notice")).to_contain_text("프로젝트를 불러왔습니다")
+            page.locator("#tab-direction").click()
+            if page.locator(".shot-directions-advanced").get_attribute("open") is None:
+                page.locator(".shot-directions-advanced > summary").click()
+            page.locator(".shot-directions-list textarea").nth(0).fill("하루가 다시 소매 끝을 만지며 망설인다.")
+            page.wait_for_timeout(250)
+            assert page.evaluate("Object.entries(localStorage).some(([k, v]) => k.startsWith('persona-storyboard.shot-directions:') && v.includes('다시 소매'))")
             for provider in ("ollama", "openai", "claude"):
                 page.locator("#provider").select_option(provider)
                 page.locator("#model").fill("test-model")
@@ -168,6 +186,9 @@ def main():
                 page.locator("#generate").click()
                 expect(page.locator("#source")).to_have_text(provider.upper())
                 expect(page.locator("#summary")).to_have_text("브라우저 테스트용 모의 AI 응답")
+                if provider == "ollama":
+                    self_note = "S01: 하루가 다시 소매 끝을 만지며 망설인다."
+                    assert any(self_note in request for request in DIRECTION_REQUESTS), DIRECTION_REQUESTS
                 page.locator("#ai-review").click()
                 expect(page.locator("#ai-result")).to_contain_text("테스트용 검수 의견")
                 page.get_by_role("button", name="S01 고정", exact=True).click()
@@ -190,7 +211,7 @@ def main():
             page.screenshot(path=str(screenshots / "mobile-board.png"), full_page=True)
             assert not errors, errors
             browser.close()
-            print("PASS: demo, edit, XSS escaping, lock, regenerate, import/export, three mocked providers, review invalidation, mobile overflow.")
+            print("PASS: demo, combined direction, per-shot request injection, edit, XSS escaping, lock, regenerate, import/export, three mocked providers, review invalidation, mobile overflow.")
             print("Screenshots: storage/browser-check (ignored). No real AI requests.")
     finally:
         server.shutdown()

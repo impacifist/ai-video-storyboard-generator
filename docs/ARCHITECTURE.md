@@ -7,6 +7,7 @@
 - `server.py`: loopback 전용 HTTP 서버, 정적 화면, 생성·검수·검증·내보내기 API
 - `storyboard/schema.py`: 입력, 컷, 상태, AI 검수의 공통 계약 및 형식 검증
 - `storyboard/engine.py`: 연출 지시, 생성, 고정 컷 병합, 출처·이력, 연속성 검사
+- `storyboard/state_repair.py`: AI 생성 중 누락된 화면 밖 캐릭터 상태를 이전 컷 또는 중립 상태로 보완하고 assumptions에 기록합니다. 저장 문서 검증은 그대로 엄격하게 유지합니다.
 - `storyboard/providers.py`: Ollama / OpenAI / Claude / LM Studio의 서버 전용 연결부
 - `storyboard/library.py`: SQLite 기반 불변 사본 저장·조회·휴지통·복원 및 변환 결과 보관
 - `storyboard/conversion.py`: 선택 컷의 최대 15초 계획, 입력 가이드 기반 변환 및 대사·클립 참조 검증
@@ -37,7 +38,7 @@
   검증된 변경을 `.local-secrets/ui-settings.json`에 원자적으로 저장합니다. 키는 로컬 평문
   보관이며 프로세스 환경변수 > 웹 설정 > `.env` 순으로 적용합니다.
 - `storyboard/diagnostics.py`, `web/diagnostics.js`: 세션별 최근 200건의 AI 요청 메타데이터를 메모리에 보관하고 상태·종료 사유·토큰 사용량·추론 토큰·HTTP 상태를 조회/복사/TXT 저장합니다. ContextVar로 동시 요청을 격리하고 진행 중 로그는 삭제하지 않습니다. 본문·키·URL·예외 문자열은 기록하지 않으며 모델 ID의 알려진 키를 가립니다. `/api/diagnostics`와 `/api/diagnostics/clear`는 기존 Host/Origin 검사를 사용합니다. 서버가 제공하지 않은 지표는 추정하지 않습니다.
-- `web/`: 설정, 콘티 카드, 편집, 고정, 파일 입출력 화면
+- `web/`: 설정, 콘티 카드, 편집, 고정, 파일 입출력 화면. `direction.js`는 전개·결말 단일 입력과 제목별 브라우저 임시 저장 컷 지시를 기존 brief/revision 계약에 연결합니다.
 - 로컬 출력 예산: `OLLAMA_MAX_TOKENS`, `LMSTUDIO_MAX_TOKENS`, `OPENAI_LOCAL_MAX_TOKENS`를 제공자별로 저장·검증하고 생성·검수·변환에서 사용합니다. 기본 16000, 범위 256~131072이며 진단 로그에 실제 요청 예산을 기록합니다. OpenAI 호환 예산은 loopback 호스트에만 적용하고 클라우드는 기존 한도를 유지합니다. Ollama는 options.num_predict, 호환 Chat Completions는 max_tokens, Responses는 max_output_tokens를 사용합니다. 컨텍스트·추론 설정과 자동 재시도는 변경하지 않습니다.
 - `web/translations.js`, `web/i18n.js`: 한국어·영어·일본어 UI 사전과 언어 전환.
   최초 정적 UI 및 명시적으로 지정한 UI 문구만 번역하며 사용자·모델 원문을 탐색하거나

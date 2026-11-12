@@ -84,6 +84,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             files = {"/": ("index.html", "text/html; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                     "/direction.js": ("direction.js", "text/javascript; charset=utf-8"),
                      "/diagnostics.js": ("diagnostics.js", "text/javascript; charset=utf-8"),
                      "/translations.js": ("translations.js", "text/javascript; charset=utf-8"),
                      "/i18n.js": ("i18n.js", "text/javascript; charset=utf-8"),

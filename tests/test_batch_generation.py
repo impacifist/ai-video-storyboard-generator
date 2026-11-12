@@ -46,6 +46,28 @@ class BatchGenerationTests(unittest.TestCase):
             self.assertFalse(calls[2]["batch"]["is_final"])
             self.assertTrue(calls[-1]["batch"]["is_final"])
 
+    def test_batch_completes_character_state_omissions_across_handoffs(self):
+        value, story = self.source(13)
+        missing = value["characters"][-1]["id"]
+
+        def corrupt(result, request):
+            if request["batch"]["shot_ids"][0] == "S07":
+                shot = result["shots"][0]
+                for key in ("start_state", "end_state"):
+                    shot[key]["characters"] = [
+                        state for state in shot[key]["characters"] if state["character_id"] != missing]
+
+        calls = []
+        with patch("storyboard.providers.generate_json", side_effect=self.upstream(story, calls, corrupt)):
+            result = engine.generate({"brief": value, "provider": "openai", "model": "test"})
+
+        shot = result["story"]["shots"][6]
+        expected = {character["id"] for character in value["characters"]}
+        for key in ("start_state", "end_state"):
+            self.assertEqual({state["character_id"] for state in shot[key]["characters"]}, expected)
+        self.assertTrue(any(item.startswith("누락된 인물 상태 자동 보완:")
+                            for item in result["story"]["assumptions"]))
+
     def test_regeneration_skips_locked_shots_and_preserves_input(self):
         value, story = self.source(13)
         previous = engine.generate({"brief": value, "provider": "demo"})

@@ -59,15 +59,15 @@ class GenerationChoiceTests(unittest.TestCase):
                     call(payload)
 
     def test_other_invalid_fields_cannot_be_accepted_as_a_count_difference(self):
-        for issue in ("speaker", "id", "state", "duration", "empty"):
+        for issue in ("speaker", "id", "prop", "duration", "empty"):
             story = self.story(5)
             shot = story["shots"][0]
             if issue == "speaker":
                 shot["dialogue"][0]["speaker"] = "unknown"
             elif issue == "id":
                 shot["id"] = "S02"
-            elif issue == "state":
-                shot["start_state"]["characters"] = []
+            elif issue == "prop":
+                shot["end_state"]["props"] = [{"name": "우산", "holder": "unknown", "position": "손"}]
             elif issue == "duration":
                 shot["duration"] = 0
             else:

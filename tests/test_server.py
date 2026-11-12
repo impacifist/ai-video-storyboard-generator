@@ -146,6 +146,10 @@ class HTTPTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("text/javascript", headers["Content-Type"])
             self.assertTrue(raw)
+        status, headers, raw = self.request("/direction.js")
+        self.assertEqual(status, 200)
+        self.assertIn("text/javascript", headers["Content-Type"])
+        self.assertIn("shot-directions-advanced", raw.decode("utf-8"))
 
     def test_invalid_import_rejected(self):
         self.assertEqual(self.request("/api/validate", {"document": {"schema_version": 999}})[0], 400)

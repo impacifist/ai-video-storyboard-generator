@@ -3,7 +3,7 @@
 import copy
 import json
 
-from . import providers
+from . import providers, state_repair
 from .schema import NUMBER, STORY, TEXT, ValidationError, array, obj, validate, validate_story
 
 SINGLE_CALL_LIMIT = 12
@@ -75,6 +75,7 @@ def generate(brief, provider, model, director, previous=None, revision="", locke
             validate(batch, STORY, "batch")
             if [s["id"] for s in batch["shots"]] != ids:
                 raise ValidationError(f"분할 생성 결과의 컷 수 또는 ID 순서가 다릅니다. 해당 묶음 요청 {len(ids)}개 · 생성 {len(batch['shots'])}개.")
+            state_repair.complete_batch(batch, brief, story["shots"][-2:])
             for shot, planned in zip(batch["shots"], outline["shots"][cursor:end]):
                 if shot["duration"] != planned["duration"] or shot["scene_id"] != planned["scene_id"]:
                     raise ValidationError("분할 생성 결과가 전체 설계의 길이 또는 장면을 변경했습니다.")

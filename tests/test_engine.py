@@ -75,6 +75,29 @@ class ContractTests(unittest.TestCase):
                 engine.validate_document(result)
                 self.assertEqual(len(result["story"]["shots"]), source["shot_count"])
 
+    def test_ai_generation_completes_missing_off_screen_character_states(self):
+        source = brief()
+        template = source["characters"][0]
+        source["characters"] = [dict(template, id=f"actor_{i}", name=f"Actor {i}") for i in range(5)]
+        response = engine.demo_story(source)
+        missing = source["characters"][-1]["id"]
+        for key in ("start_state", "end_state"):
+            response["shots"][2][key]["characters"] = [
+                state for state in response["shots"][2][key]["characters"]
+                if state["character_id"] != missing]
+
+        with patch("storyboard.providers.generate_json", return_value=response):
+            result = engine.generate({"brief": source, "provider": "openai", "model": "test-model"})
+
+        shot = result["story"]["shots"][2]
+        expected = {character["id"] for character in source["characters"]}
+        for key in ("start_state", "end_state"):
+            states = shot[key]["characters"]
+            self.assertEqual({state["character_id"] for state in states}, expected)
+            self.assertTrue(all(all(value.strip() for value in state.values()) for state in states))
+        self.assertTrue(any(item.startswith("누락된 인물 상태 자동 보완:")
+                            for item in result["story"]["assumptions"]))
+
     def test_semantic_review_uses_same_direction_contract_without_rewriting_story(self):
         doc = document()
         before = copy.deepcopy(doc)

@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import batch_generation, dialogue, providers
+from . import batch_generation, dialogue, providers, state_repair
 from .schema import (AI_REVIEW, BRIEF, STORY, TEXT, ValidationError, array, obj,
                      validate, validate_brief, validate_story)
 
@@ -133,6 +133,8 @@ def generate(payload, *, allow_count_choice=False):
             raise ValidationError(f"컷 수가 다릅니다. 요청 {brief['shot_count']}개 · 생성 {actual_count}개. 사용할 수 있는 범위는 3~60컷입니다.")
         effective_brief["shot_count"] = actual_count
         validate_brief(effective_brief)
+    if provider != "demo":
+        state_repair.complete_story(story, effective_brief, locked)
     validate_story(story, effective_brief)
     if not set(locked) <= {s["id"] for s in story["shots"]}:
         raise ValidationError("생성 결과에 고정 컷이 누락되었습니다. 기존 콘티는 유지됩니다.")
