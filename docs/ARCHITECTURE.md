@@ -7,6 +7,7 @@
 - `server.py`: loopback 전용 HTTP 서버, 정적 화면, 생성·검수·검증·내보내기 API
 - `storyboard/schema.py`: 입력, 컷, 상태, AI 검수의 공통 계약 및 형식 검증
 - `storyboard/engine.py`: 연출 지시, 생성, 고정 컷 병합, 출처·이력, 연속성 검사
+- `storyboard/generation_repair.py`: 파싱된 콘티가 애플리케이션 검증에서 실패할 때 초안과 오류 경로를 포함한 보완 요청을 생성당 최대 1회 수행합니다. 연결·시간 초과는 재시도하지 않으며 보완 내역을 assumptions에 기록합니다.
 - `storyboard/state_repair.py`: AI 생성 중 누락된 화면 밖 캐릭터 상태를 이전 컷 또는 중립 상태로 보완하고 assumptions에 기록합니다. 저장 문서 검증은 그대로 엄격하게 유지합니다.
 - `storyboard/providers.py`: Ollama / OpenAI / Claude / LM Studio의 서버 전용 연결부
 - `storyboard/library.py`: SQLite 기반 불변 사본 저장·조회·휴지통·복원 및 변환 결과 보관

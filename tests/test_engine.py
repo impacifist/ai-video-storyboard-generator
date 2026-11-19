@@ -98,6 +98,31 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(any(item.startswith("누락된 인물 상태 자동 보완:")
                             for item in result["story"]["assumptions"]))
 
+    def test_parsed_story_with_invalid_speaker_is_repaired_once(self):
+        source = brief()
+        invalid = engine.demo_story(source)
+        invalid["shots"][0]["dialogue"][0]["speaker"] = "unknown_speaker"
+        corrected = engine.demo_story(source)
+        calls = []
+
+        def generate(provider, model, system, user, schema):
+            request = json.loads(user)
+            calls.append(request)
+            if len(calls) == 1:
+                return invalid
+            self.assertIn("화자 참조", request["repair"]["validation_errors"][0])
+            self.assertEqual(request["repair"]["previous_output"]["shots"][0]["dialogue"][0]["speaker"],
+                             "unknown_speaker")
+            return corrected
+
+        with patch("storyboard.providers.generate_json", side_effect=generate):
+            result = engine.generate({"brief": source, "provider": "openai", "model": "test-model"})
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["story"]["shots"][0]["dialogue"][0]["speaker"], source["characters"][0]["id"])
+        self.assertTrue(any(item.startswith("AI 출력 검증 오류 1회 보완:")
+                            for item in result["story"]["assumptions"]))
+
     def test_semantic_review_uses_same_direction_contract_without_rewriting_story(self):
         doc = document()
         before = copy.deepcopy(doc)

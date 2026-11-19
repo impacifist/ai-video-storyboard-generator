@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import batch_generation, dialogue, providers, state_repair
+from . import batch_generation, dialogue, generation_repair, providers, state_repair
 from .schema import (AI_REVIEW, BRIEF, STORY, TEXT, ValidationError, array, obj,
                      validate, validate_brief, validate_story)
 
@@ -115,29 +115,45 @@ def generate(payload, *, allow_count_choice=False):
             raise ValidationError("고정 컷이 있는 동안 원본 설정을 바꿀 수 없습니다. 컷 고정을 해제해주세요.")
         if len(locked) == brief["shot_count"]:
             raise ValidationError("모든 컷이 고정되어 있습니다. 수정할 컷의 고정을 해제해주세요.")
+    effective_brief = copy.deepcopy(brief)
+    repair_budget = {"used": False}
     if provider == "demo":
         story = demo_story(brief, revision)
     elif brief["shot_count"] > batch_generation.SINGLE_CALL_LIMIT:
-        story = batch_generation.generate(brief, provider, model, DIRECTOR, previous, revision, locked)
+        story = batch_generation.generate(brief, provider, model, DIRECTOR, previous, revision, locked,
+                                          repair_budget=repair_budget)
     else:
-        story = providers.generate_json(provider, model, DIRECTOR, json.dumps({
+        user = json.dumps({
             "brief": brief, "revision_request": revision,
             "previous_story": previous["story"] if previous else None,
             "locked_shots": list(locked.values()),
-        }, ensure_ascii=False), STORY)
-    validate(story, STORY, "story")
+        }, ensure_ascii=False)
+
+        def validate_draft(candidate):
+            nonlocal effective_brief
+            validate(candidate, STORY, "story")
+            actual_count = len(candidate["shots"])
+            effective_brief = copy.deepcopy(brief)
+            if allow_count_choice and actual_count != brief["shot_count"]:
+                if not 3 <= actual_count <= 60:
+                    raise ValidationError(
+                        f"컷 수가 다릅니다. 요청 {brief['shot_count']}개 · 생성 {actual_count}개. "
+                        "사용할 수 있는 범위는 3~60컷입니다.")
+                effective_brief["shot_count"] = actual_count
+                validate_brief(effective_brief)
+            if not set(locked) <= {shot["id"] for shot in candidate["shots"]}:
+                raise ValidationError("생성 결과에 고정 컷이 누락되었습니다.")
+            candidate["shots"] = [copy.deepcopy(locked.get(shot["id"], shot))
+                                  for shot in candidate["shots"]]
+            state_repair.complete_story(candidate, effective_brief, locked)
+            validate_story(candidate, effective_brief)
+
+        story, _ = generation_repair.call_with_repair(
+            provider, model, DIRECTOR, user, STORY, validate_draft, repair_budget=repair_budget)
+    if provider == "demo":
+        validate(story, STORY, "story")
+        validate_story(story, effective_brief)
     actual_count = len(story["shots"])
-    effective_brief = copy.deepcopy(brief)
-    if allow_count_choice and actual_count != brief["shot_count"]:
-        if not 3 <= actual_count <= 60:
-            raise ValidationError(f"컷 수가 다릅니다. 요청 {brief['shot_count']}개 · 생성 {actual_count}개. 사용할 수 있는 범위는 3~60컷입니다.")
-        effective_brief["shot_count"] = actual_count
-        validate_brief(effective_brief)
-    if provider != "demo":
-        state_repair.complete_story(story, effective_brief, locked)
-    validate_story(story, effective_brief)
-    if not set(locked) <= {s["id"] for s in story["shots"]}:
-        raise ValidationError("생성 결과에 고정 컷이 누락되었습니다. 기존 콘티는 유지됩니다.")
     # Locks are enforced by code, even if the model disregards the prompt.
     for index, shot in enumerate(story["shots"]):
         story["shots"][index] = copy.deepcopy(locked.get(shot["id"], {**shot, "locked": False}))

@@ -133,15 +133,22 @@ class GenerationChoiceTests(unittest.TestCase):
                 engine.generate_response(self.payload)
         ai.assert_called_once()
 
-    def test_incomplete_outline_reports_counts_without_offering_partial_story(self):
+    def test_incomplete_outline_is_repaired_once_then_rejected_without_partial_story(self):
         brief = {**self.brief, "shot_count": 13}
         outline = {"summary": "A whole-story outline", "beats": ["Start", "End"], "assumptions": [],
                    "shots": [{"id": f"S{i:02d}", "scene_id": "scene", "duration": 2.5,
                               "purpose": "A beat", "action": "An approved action"} for i in range(1, 13)]}
-        with patch.object(providers, "generate_json", return_value=outline) as ai:
+        calls = []
+        def generate(provider, model, system, user, schema):
+            calls.append(json.loads(user))
+            return outline
+
+        with patch.object(providers, "generate_json", side_effect=generate) as ai:
             with self.assertRaisesRegex(ValidationError, "요청 13개.*생성 12개.*상세 컷"):
                 engine.generate_response({**self.payload, "brief": brief})
-        ai.assert_called_once()
+        self.assertEqual(ai.call_count, 2)
+        self.assertIn("repair", calls[1])
+        self.assertIn("전체 설계의 컷 수 또는 ID", calls[1]["repair"]["validation_errors"][0])
 
 
 if __name__ == "__main__":

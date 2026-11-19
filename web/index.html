@@ -127,6 +127,7 @@
               <div class="form-grid"><label>제공자<select id="provider"><option value="demo">예시 모드 · 전송 없음</option><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option><option value="openai">OpenAI</option><option value="claude">Claude</option></select></label><label>모델 ID <span id="model-required" class="required-mark" hidden aria-label="AI 사용 시 필수">#</span><input id="model" placeholder="사용할 모델 ID" autocomplete="off"></label></div>
               <p id="provider-note" class="helper"></p>
               <p id="key-note" class="helper"></p>
+              <p class="helper">복구 가능한 콘티 검증 오류가 있으면 초안을 바탕으로 최대 1회 보완 요청합니다. 추가 API 사용이 발생할 수 있으며, 연결·시간 초과는 재시도하지 않습니다.</p>
               <label id="consent-label" class="check" hidden><input id="consent" type="checkbox"><span class="required-mark">#</span> 선택한 제공자에 설정·콘티를 전송해 생성 또는 검수합니다.</label>
             </details>
             <button id="generate" class="primary" type="submit"><span>✦</span> 콘티 만들기 <span>→</span></button>

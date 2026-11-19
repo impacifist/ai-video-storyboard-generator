@@ -31,7 +31,7 @@ def main():
         story["shots"] = story["shots"][:state["count"]]
         for i, shot in enumerate(story["shots"], 1):
             shot["id"] = f"S{i:02d}"
-        if state["invalid"]:
+        if state["invalid"] and "repair" not in data:
             story["shots"][0]["dialogue"][0]["speaker"] = "unknown"
         return story
 
@@ -114,12 +114,14 @@ def main():
             expect(page.locator("#generation-pending")).not_to_be_visible()
             assert page.evaluate("project.story.shots.length") == 6
             assert len(library.listing()) == 3 and len(calls) == 5
-            state.update(count=5, invalid=True)
+            state.update(count=6, invalid=True)
             final = page.evaluate("JSON.stringify(project)")
             page.locator("#generate").click()
-            expect(page.locator("#notice")).to_contain_text("화자")
+            expect(page.locator("#notice")).to_contain_text("검증 오류를 1회 보완")
             expect(page.locator("#generation-choice")).not_to_be_visible()
-            assert page.evaluate("JSON.stringify(project)") == final
+            assert page.evaluate("JSON.stringify(project)") != final
+            assert page.evaluate("project.story.shots[0].dialogue[0].speaker") == page.evaluate("project.brief.characters[0].id")
+            assert len(calls) == 7
             assert not errors, errors
             browser.close()
         print("PASS: count preview, exact counts, draft download, explicit acceptance, failed/successful retry, previous preservation, no hidden extra AI, invalid-speaker rejection, 3 languages and mobile.")

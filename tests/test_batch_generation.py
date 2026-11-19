@@ -68,6 +68,26 @@ class BatchGenerationTests(unittest.TestCase):
         self.assertTrue(any(item.startswith("누락된 인물 상태 자동 보완:")
                             for item in result["story"]["assumptions"]))
 
+    def test_invalid_batch_speaker_is_repaired_once_and_keeps_other_shots(self):
+        value, story = self.source(13)
+        before = copy.deepcopy(story)
+
+        def corrupt(result, request):
+            if request["batch"]["shot_ids"][0] == "S01" and "repair" not in request:
+                result["shots"][0]["dialogue"][0]["speaker"] = "unknown_speaker"
+
+        calls = []
+        with patch("storyboard.providers.generate_json", side_effect=self.upstream(story, calls, corrupt)):
+            result = engine.generate({"brief": value, "provider": "openai", "model": "test"})
+
+        self.assertEqual(len(calls), 5)  # outline, first batch, repair, then two remaining batches
+        repair = calls[2]["repair"]
+        self.assertIn("화자 참조", repair["validation_errors"][0])
+        self.assertEqual(repair["previous_output"]["shots"][0]["dialogue"][0]["speaker"], "unknown_speaker")
+        self.assertEqual(result["story"]["shots"][1:], before["shots"][1:])
+        self.assertTrue(any(item.startswith("AI 출력 검증 오류 1회 보완:")
+                            for item in result["story"]["assumptions"]))
+
     def test_regeneration_skips_locked_shots_and_preserves_input(self):
         value, story = self.source(13)
         previous = engine.generate({"brief": value, "provider": "demo"})
@@ -85,7 +105,7 @@ class BatchGenerationTests(unittest.TestCase):
             self.assertNotIn(before["story"]["shots"][index]["id"], ids)
         self.assertEqual(calls[1]["next_locked_shot"], before["story"]["shots"][2])
 
-    def test_invalid_batch_is_not_retried_or_returned_as_partial_story(self):
+    def test_invalid_batch_is_repaired_once_or_never_returned_as_partial_story(self):
         value, story = self.source(13)
         previous = engine.generate({"brief": value, "provider": "demo"})
         before = copy.deepcopy(previous)
@@ -97,14 +117,19 @@ class BatchGenerationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValidationError, "S07~S12"):
                 engine.generate({"brief": value, "provider": "openai", "model": "test", "previous": previous})
         self.assertEqual(previous, before)
-        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(calls), 4)
+        repair = calls[-1]["repair"]
+        self.assertIn("분할 생성 결과의 컷 수 또는 ID 순서", repair["validation_errors"][0])
+        self.assertEqual([shot["id"] for shot in repair["previous_output"]["shots"]],
+                         ["S01", "S08", "S09", "S10", "S11", "S12"])
 
     def test_bad_outline_stops_before_any_batch(self):
         value, _ = self.source(13)
         with patch("storyboard.providers.generate_json", return_value={"summary": "x", "beats": ["x"], "assumptions": [], "shots": []}) as upstream:
             with self.assertRaises(ValidationError):
                 batch_generation.generate(value, "openai", "test", engine.DIRECTOR)
-        upstream.assert_called_once()
+        self.assertEqual(upstream.call_count, 2)
+        self.assertIn("repair", json.loads(upstream.call_args_list[1].args[3]))
 
     def test_transport_failure_is_not_retried(self):
         value, story = self.source(13)
@@ -125,4 +150,4 @@ class BatchGenerationTests(unittest.TestCase):
             with self.subTest(field=field), patch("storyboard.providers.generate_json", side_effect=self.upstream(story, calls, corrupt)):
                 with self.assertRaisesRegex(ValidationError, "S01~S06"):
                     engine.generate({"brief": value, "provider": "openai", "model": "test"})
-            self.assertEqual(len(calls), 2)
+            self.assertEqual(len(calls), 3)

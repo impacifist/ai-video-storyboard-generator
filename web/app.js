@@ -448,6 +448,7 @@ async function toggleLock(index) {
 
 async function useGeneratedResult(result, provider) {
   project = result.document; checks = result.review; aiReview = null; dirty = true;
+  const repairNote = project.story.assumptions.find((item) => item.startsWith("AI 출력 검증 오류 1회 보완:"));
   fillBrief(project.brief);
   pendingGeneration = null; renderGenerationChoice(); renderBoard();
   try {
@@ -457,7 +458,9 @@ async function useGeneratedResult(result, provider) {
     notice(tr("콘티는 생성됐지만 보관함 저장에 실패했습니다. JSON으로 저장해주세요. {0}", {0: error.message}), true);
     return;
   }
-  notice(provider === "demo" ? tr("예시 콘티입니다. 보관함에 저장했습니다. AI 생성과 페르소나 해석은 수행하지 않았습니다.") : tr("콘티 초안을 보관함에 저장했습니다. 검수 후 편집한 내용은 ‘보관함에 저장’으로 새 사본을 저장하세요."));
+  notice(repairNote ? `${tr("검증 오류를 1회 보완해 콘티를 저장했습니다.")} ${repairNote}` :
+    provider === "demo" ? tr("예시 콘티입니다. 보관함에 저장했습니다. AI 생성과 페르소나 해석은 수행하지 않았습니다.") :
+      tr("콘티 초안을 보관함에 저장했습니다. 검수 후 편집한 내용은 ‘보관함에 저장’으로 새 사본을 저장하세요."));
 }
 
 async function generate(regenerate = false, retryPayload = null) {
